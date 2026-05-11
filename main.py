@@ -1038,7 +1038,7 @@ async def delete_expense(message: Message):
 
     expense_id = int(text[1])
 
-    delete_expense_db(expense_id)
+    delete_expense_db(user_id, expense_id)
 
     await message.answer(
         f"❌ Видалено витрату #{expense_id}"
