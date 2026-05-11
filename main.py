@@ -876,6 +876,8 @@ async def show_expenses(message: Message):
 
     expenses = get_expenses_db(user_id)
 
+    print(expenses)
+
     if not expenses:
         await message.answer("📭 Немає витрат")
         return
