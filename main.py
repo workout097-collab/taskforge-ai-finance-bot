@@ -1034,15 +1034,22 @@ async def show_stats(message: Message):
 
 @dp.message(Command("delete"))
 async def delete_expense(message: Message):
-    text = message.text.split()
 
-    expense_id = int(text[1])
+    try:
+        text = message.text.split()
 
-    delete_expense_db(user_id, expense_id)
+        expense_id = int(text[1])
 
-    await message.answer(
-        f"❌ Видалено витрату #{expense_id}"
-    )
+        user_id = message.from_user.id
+
+        delete_expense_db(user_id, expense_id)
+
+        await message.answer(
+            f"❌ Видалено витрату #{expense_id}"
+        )
+
+    except Exception as e:
+        await message.answer(f"ERROR: {e}")
 
 @dp.message(Command("report"))
 async def report_handler(message: Message):
