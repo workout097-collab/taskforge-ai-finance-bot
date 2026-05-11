@@ -1042,7 +1042,11 @@ async def delete_expense(message: Message):
 
         user_id = message.from_user.id
 
-        delete_expense_db(user_id, expense_id)
+        expenses = get_expenses_db(user_id)
+
+        real_id = expenses[expense_id - 1][0]
+
+        delete_expense_db(user_id, real_id)
 
         await message.answer(
             f"❌ Видалено витрату #{expense_id}"
