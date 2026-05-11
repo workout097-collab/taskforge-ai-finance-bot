@@ -1,18 +1,24 @@
+from datetime import datetime, timedelta
+from main_keyboard import main_keyboard
 import sqlite3
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
-from keyboards.main_keyboard import main_keyboard
 from aiogram.filters import Command
 import matplotlib.pyplot as plt
 from aiogram.types import FSInputFile
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from reportlab.pdfgen import canvas
 from aiogram.types import FSInputFile
+from database import *
+from database import get_premium_users_count
+from database import delete_task_db
+from database import delete_goal_db
+from database import clear_expenses_db
+from database import get_total_users
 
 
+from database import  (get_month_expenses_db)
 
-from database import (get_month_expenses_db)
-from datetime import datetime
 
 from dotenv import load_dotenv
 import os
@@ -35,7 +41,7 @@ from database import (
     add_subscription_db,
     get_subscriptions_db
 )
-
+from database import add_task_db, get_tasks_db, complete_task_db
 
 load_dotenv(dotenv_path=".env")
 init_db()
@@ -47,6 +53,146 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 
+@dp.message(Command("clear_expenses"))
+async def clear_expenses(message: Message):
+
+    user_id = message.from_user.id
+
+    clear_expenses_db(user_id)
+
+    await message.answer("🗑 Всі витрати очищені")
+
+@dp.message(F.text == "+ Add Expense")
+async def expense_menu(message: Message):
+    await message.answer(
+        "💸 Add expense:\n\n"
+        "Example:\n"
+        "/add Food 300\n"
+        "/add Taxi 25\n"
+        "/add Coffee 10"
+    )
+
+@dp.message(Command("premium_users"))
+async def premium_users_command(message: Message):
+
+    total = get_premium_users_count()
+
+    await message.answer(
+        f"💎 Premium users: {total}"
+    )
+
+@dp.message(Command("users"))
+async def users_command(message: Message):
+
+    total = get_total_users()
+
+    await message.answer(
+        f"👥 Users: {total}"
+    )
+
+
+@dp.message(F.text == "✅ Tasks")
+async def tasks_menu(message: Message):
+    await message.answer(
+        "✅ VTask commands:\n\n"
+        "/task Buy milk\n"
+        "/tasks\n"
+        "/done 1\n"
+        "/delete_task 1"
+
+    )
+    return
+
+@dp.message(Command("task"))
+async def add_task(message: Message):
+
+    user_id = message.from_user.id
+
+    text = message.text.replace("/task ", "")
+
+    add_task_db(user_id, text)
+
+    await message.answer(
+        f"✅ Задачу додано:\n\n{text}"
+    )
+
+@dp.message(F.text == "✅ Tasks")
+async def tasks_button(message: Message):
+
+    await message.answer(
+        "📝 Tasks menu:\n\n"
+        "/task Buy milk\n"
+        "/tasks\n"
+        "/done 1"
+    )
+
+@dp.message(F.text == "📊 Analytics")
+async def analytics_help(message: Message):
+
+    await message.answer(
+        "📊 Analytics:\n\n"
+        "/stats\n"
+        "/chart\n"
+        "/month"
+    )
+
+@dp.message(F.text == "➕ Add Expense")
+async def add_expense_help(message: Message):
+
+    await message.answer(
+        "💸 Send expense like:\n\n"
+        "/add food 300"
+    )
+
+@dp.message(Command("deletetask"))
+async def delete_task_command(message: Message):
+
+    text = message.text.split()
+
+    task_id = int(text[1])
+
+    user_id = message.from_user.id
+
+    delete_task_db(user_id, task_id)
+
+    await message.answer("🗑 Task deleted!")
+
+
+
+@dp.message(Command("tasks"))
+async def show_tasks(message: Message):
+
+    user_id = message.from_user.id
+
+    tasks = get_tasks_db(user_id)
+
+    if not tasks:
+
+        await message.answer("📭 Немає задач")
+        return
+
+    text = "📝 Твої задачі:\n\n"
+
+    for index, task in enumerate(tasks, start=1):
+        status = "✅" if task[3] == 1 else "⬜"
+
+        text += f"{status} #{task[0]} {task[2]}\n"
+
+    await message.answer(text)
+
+@dp.message(Command("done"))
+async def complete_task(message: Message):
+
+    user_id = message.from_user.id
+
+    text = message.text.split()
+
+    task_id = int(text[1])
+
+    complete_task_db(user_id, task_id)
+
+    await message.answer("✅ Задачу виконано")
+
 
 @dp.message(Command("help"))
 async def help_command(message: Message):
@@ -57,7 +203,8 @@ async def help_command(message: Message):
         "💸 Витрати:\n"
         "/add food 300\n"
         "/expenses\n"
-        "/delete 1\n\n"
+        "/delete_task TASK_ID\n"
+        "/clear_expenses\n"
 
         "📊 Аналітика:\n"
         "/stats\n"
@@ -82,9 +229,33 @@ async def help_command(message: Message):
         "/currency USD\n"
         "/currency PLN\n"
         "/currency UAH\n\n"
-    )
 
+        "✅ VTask:\n"
+        "/task Go to the gym\n"
+        "/tasks\n"
+        "/done 1\n"
+
+    )
     await message.answer(text)
+
+@dp.message(Command("delete_task"))
+async def delete_task(message: Message):
+        user_id = message.from_user.id
+
+        text = message.text.split()
+
+        if len(text) < 2:
+            await message.answer("❌ Use: /delete_task ID")
+            return
+
+        task_id = int(text[1])
+
+        delete_task_db(user_id, task_id)
+
+        await message.answer("🗑 Task deleted")
+
+
+
 
 @dp.message(Command("subscribe"))
 async def subscribe_command(message: Message):
@@ -128,6 +299,15 @@ async def show_subscriptions(message: Message):
     text += f"\n💰 Разом: {total} {currency}/month"
 
     await message.answer(text)
+
+@dp.message(Command("delete_goal"))
+async def delete_goal(message: Message):
+
+    user_id = message.from_user.id
+
+    delete_goal_db(user_id)
+
+    await message.answer("🎯 Goal deleted")
 
 @dp.message(Command("goal"))
 async def goal_handler(message: Message):
@@ -238,6 +418,15 @@ async def currency_handler(message: Message):
 async def insights_handler(message: Message):
 
     user_id = message.from_user.id
+
+    if not is_premium(user_id):
+        await message.answer(
+            "👑 Premium feature\n\n"
+            "Trial закінчився.\n"
+            "Підписка: 5$/month"
+        )
+
+        return
 
     expenses = get_expenses_db(user_id)
 
@@ -403,6 +592,15 @@ async def warnings_handler(message: Message):
     await message.answer(text)
 
 
+@dp.message(F.text == "📄 Report")
+async def report_button(message: Message):
+    await message.answer(
+        "📄 PDF Report\n\n"
+        "Use command:\n"
+        "/report"
+    )
+
+
 @dp.message(Command("recommend"))
 async def recommend_handler(message: Message):
 
@@ -448,9 +646,9 @@ async def recommend_handler(message: Message):
 
     await message.answer(text)
 
-
-@dp.message(Command("report"))
-async def report_handler(message: Message):
+@dp.message(F.text == "📄 Report")
+async def report_button(message: Message):
+    await report_handler(message)
 
     user_id = message.from_user.id
 
@@ -540,10 +738,42 @@ async def month_stats(message: Message):
 
 @dp.message(Command("start"))
 async def start_handler(message: Message):
+    user_id = message.from_user.id
+
+    premium_user = get_premium_user(user_id)
+
+    if not premium_user:
+        trial_end = (
+                datetime.now() + timedelta(days=7)
+        ).strftime("%Y-%m-%d")
+
+        add_premium_user(
+            user_id,
+            1,
+            trial_end
+        )
+
+        await message.answer(
+            "🎁 Тобі активовано 7-денний Premium Trial!"
+        )
+
     await message.answer(
-        "Привіт 👋 Я твій AI Finance Bot",
+        "🚀 Welcome to TaskForge AI\n\n"
+        "Track:\n"
+        "• expenses\n"
+        "• tasks\n"
+        "• goals\n"
+        "• subscriptions\n"
+        "• budgets\n\n"
+        "👇 Use the menu below\n"
+        "or type /help",
         reply_markup=main_keyboard
     )
+
+
+
+
+
 
 @dp.message(Command("add"))
 async def add_expense(message: Message):
@@ -601,27 +831,64 @@ async def add_expense(message: Message):
                 "❌ Сума має бути числом"
             )
 
+@dp.message(F.text == "📊 Analytics")
+async def analytics_button(message: Message):
+
+    await message.answer(
+        "/stats\n/chart\n/insights\n/warnings\n/month"
+    )
+
+@dp.message(F.text == "🎯 Goals")
+async def goals_button(message: Message):
+
+    await message.answer(
+        "/goal 10000 MacBook\n/goal_status"
+    )
+
+@dp.message(F.text == "💳 Subscriptions")
+async def subscriptions_button(message: Message):
+
+    await message.answer(
+        "/subscribe netflix 40\n/subscriptions"
+    )
+
+@dp.message(F.text == "💰 Budget")
+async def budget_button(message: Message):
+
+    await message.answer(
+        "/budget 5000\n/budget_status"
+    )
+
+@dp.message(F.text == "⚙️ Settings")
+async def settings_button(message: Message):
+
+    await message.answer(
+        "/currency USD"
+    )
+
+
+
 
 @dp.message(Command("expenses"))
-async def get_expenses(message: Message):
+async def show_expenses(message: Message):
 
     user_id = message.from_user.id
 
-    currency = get_currency_db(user_id)
+    expenses = get_expenses_db(user_id)
 
-    total = sum(expense[3] for expense in expenses)
+    if not expenses:
+        await message.answer("📭 Немає витрат")
+        return
 
     text = "💸 Твої витрати:\n\n"
 
     for expense in expenses:
 
         text += (
-            f"{expense[0]}. "
+            f"#{expense[0]} | "
             f"{expense[2]} - "
-            f"{expense[3]} {currency}\n"
+            f"{expense[3]}\n"
         )
-
-    text += f"\nЗагалом: {total} {currency}"
 
     await message.answer(text)
 
@@ -777,6 +1044,11 @@ async def delete_expense(message: Message):
         f"❌ Видалено витрату #{expense_id}"
     )
 
+@dp.message(Command("report"))
+async def report_handler(message: Message):
+
+    await message.answer("📄 Generating PDF report...")
+
 
 @dp.message()
 async def message_handler(message: Message):
@@ -810,11 +1082,11 @@ async def send_daily_reminder():
             pass
 
 async def main():
-
     scheduler.add_job(
         send_daily_reminder,
-        "interval",
-        minutes=1
+        "cron",
+        hour="12,20",
+        minute=0
     )
 
     scheduler.start()
@@ -824,3 +1096,26 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
+@dp.message(Command("givepremium"))
+async def give_premium_command(message: Message):
+
+    admin_id = YOUR_ID
+
+    if message.from_user.id != admin_id:
+        return
+
+    text = message.text.split()
+
+    user_id = int(text[1])
+
+    give_premium(user_id)
+
+    await message.answer("✅ Premium видано")
+
+
+
+@dp.message()
+async def unknown(message: Message):
+    await message.answer("Я не зрозумів команду 🙂")

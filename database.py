@@ -49,6 +49,15 @@ def init_db():
     )
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        task TEXT,
+        completed INTEGER
+    )
+    """)
+
 
     conn.commit()
     conn.close()
@@ -261,3 +270,235 @@ def get_subscriptions_db(user_id):
     conn.close()
 
     return subscriptions
+
+def create_premium_table():
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS premium_users (
+        user_id INTEGER PRIMARY KEY,
+        premium INTEGER,
+        trial_end TEXT
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+init_db()
+create_premium_table()
+
+def add_premium_user(user_id, premium, trial_end):
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT OR REPLACE INTO premium_users
+        (user_id, premium, trial_end)
+        VALUES (?, ?, ?)
+        """,
+        (user_id, premium, trial_end)
+    )
+
+    conn.commit()
+    conn.close()
+
+def get_total_users():
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT COUNT(DISTINCT user_id) FROM expenses"
+    )
+
+    total = cursor.fetchone()[0]
+
+    conn.close()
+
+    return total
+
+def get_premium_user(user_id):
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT premium, trial_end FROM premium_users WHERE user_id = ?",
+        (user_id,)
+    )
+
+    result = cursor.fetchone()
+
+    conn.close()
+
+    return result
+
+def is_premium(user_id):
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT premium, trial_end
+        FROM premium_users
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    )
+
+    result = cursor.fetchone()
+
+    conn.close()
+
+    if not result:
+        return False
+
+    premium, trial_end = result
+
+    if premium == 1:
+
+        if datetime.now() <= datetime.strptime(
+                trial_end,
+                "%Y-%m-%d"
+        ):
+
+            return True
+
+    return False
+
+
+def give_premium(user_id):
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT OR REPLACE INTO premium_users
+        (user_id, premium, trial_end)
+        VALUES (?, ?, ?)
+        """,
+        (
+            user_id,
+            1,
+            "2099-12-31"
+        )
+    )
+
+    conn.commit()
+    conn.close()
+
+def add_task_db(user_id, task):
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO tasks
+        (user_id, task, completed)
+        VALUES (?, ?, ?)
+        """,
+        (user_id, task, 0)
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def get_tasks_db(user_id):
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT * FROM tasks
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    )
+
+    tasks = cursor.fetchall()
+
+    conn.close()
+
+    return tasks
+
+def delete_task_db(user_id, task_id):
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM tasks WHERE id = ? AND user_id = ?",
+        (task_id, user_id)
+    )
+
+    conn.commit()
+    conn.close()
+
+def get_premium_users_count():
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM premium_users WHERE premium = 1"
+    )
+
+    total = cursor.fetchone()[0]
+
+    conn.close()
+
+    return total
+
+def complete_task_db(user_id, task_id):
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        UPDATE tasks
+        SET completed = 1
+        WHERE id = ? AND user_id = ?
+        """,
+        (task_id, user_id)
+    )
+
+    conn.commit()
+    conn.close()
+
+def delete_goal_db(user_id):
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM goals WHERE user_id = ?",
+        (user_id,)
+    )
+
+    conn.commit()
+    conn.close()
+
+def clear_expenses_db(user_id):
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM expenses WHERE user_id = ?",
+        (user_id,)
+    )
+
+    conn.commit()
+    conn.close()
