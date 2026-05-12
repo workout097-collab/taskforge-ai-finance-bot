@@ -123,15 +123,6 @@ async def premium_users_command(message: Message):
         f"💎 Premium users: {total}"
     )
 
-@dp.message(Command("users"))
-async def users_command(message: Message):
-
-    total = get_total_users()
-
-    await message.answer(
-        f"👥 Users: {total}"
-    )
-
 
 @dp.message(F.text == "✅ Tasks")
 async def tasks_menu(message: Message):
@@ -1002,30 +993,6 @@ async def budget_status(message: Message):
             await message.answer(text)
 
 
-@dp.message(Command("stats"))
-async def show_stats(message: Message):
-    user_id = message.from_user.id
-    expenses = get_expenses_db(user_id)
-
-    stats = {}
-
-    for expense in expenses:
-
-        category = expense[2]
-        amount = expense[3]
-
-        if category in stats:
-            stats[category] += amount
-        else:
-            stats[category] = amount
-
-    text = "📊 Статистика:\n\n"
-
-    for category, amount in stats.items():
-        text += f"{category} — {amount}$\n"
-
-    await message.answer(text)
-
 @dp.message(F.text == "📋 Витрати")
 async def expenses_button(message: Message):
 
@@ -1054,31 +1021,6 @@ async def total_button(message: Message):
         f"💰 Загальні витрати: {total}$"
     )
 
-@dp.message(Command("stats"))
-async def show_stats(message: Message):
-
-    user_id = message.from_user.id
-
-    expenses = get_expenses_db(user_id)
-
-    stats = {}
-
-    for expense in expenses:
-
-        category = expense[2]
-        amount = expense[3]
-
-        if category in stats:
-            stats[category] += amount
-        else:
-            stats[category] = amount
-
-    text = "📊 Статистика:\n\n"
-
-    for category, amount in stats.items():
-        text += f"{category} — {amount}$\n"
-
-    await message.answer(text)
 
 @dp.message(Command("delete"))
 async def delete_expense(message: Message):
