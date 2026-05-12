@@ -53,6 +53,22 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 
+@dp.message(Command("users"))
+async def users_count(message: Message):
+
+    if message.from_user.id != 1128720977:
+        return
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM users")
+    count = cursor.fetchone()[0]
+
+    conn.close()
+
+    await message.answer(f"👥 Users: {count}")
+
 @dp.message(Command("clear_expenses"))
 async def clear_expenses(message: Message):
 
@@ -739,6 +755,10 @@ async def month_stats(message: Message):
 @dp.message(Command("start"))
 async def start_handler(message: Message):
     user_id = message.from_user.id
+    username = message.from_user.username
+    first_name = message.from_user.first_name
+
+    save_user(user_id, username, first_name)
 
     premium_user = get_premium_user(user_id)
 
