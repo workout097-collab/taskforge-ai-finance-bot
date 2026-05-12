@@ -328,6 +328,38 @@ def add_premium_user(user_id, premium, trial_end):
     conn.commit()
     conn.close()
 
+def get_total_expenses_count():
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM expenses"
+    )
+
+    total = cursor.fetchone()[0]
+
+    conn.close()
+
+    return total
+
+def get_total_tasks_count():
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM tasks"
+    )
+
+    total = cursor.fetchone()[0]
+
+    conn.close()
+
+    return total
+
+
+
 def get_total_users():
 
     conn = sqlite3.connect("expenses.db")

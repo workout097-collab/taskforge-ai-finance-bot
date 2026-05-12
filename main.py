@@ -15,6 +15,12 @@ from database import delete_task_db
 from database import delete_goal_db
 from database import clear_expenses_db
 from database import get_total_users
+from database import (
+    get_total_users,
+    get_total_expenses_count,
+    get_total_tasks_count,
+    get_premium_users_count
+)
 
 
 from database import  (get_month_expenses_db)
@@ -52,6 +58,26 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
+
+@dp.message(Command("stats"))
+async def stats_handler(message: Message):
+
+    if message.from_user.id != 1128720977:
+        return
+
+    users = get_total_users()
+    expenses = get_total_expenses_count()
+    tasks = get_total_tasks_count()
+    premium = get_premium_users_count()
+
+    text = (
+        f"👥 Users: {users}\n"
+        f"💰 Expenses added: {expenses}\n"
+        f"✅ Tasks created: {tasks}\n"
+        f"⭐ Premium users: {premium}"
+    )
+
+    await message.answer(text)
 
 @dp.message(Command("users"))
 async def users_count(message: Message):
