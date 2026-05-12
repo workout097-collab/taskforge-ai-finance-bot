@@ -59,8 +59,8 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 
-@dp.message(Command("stats"))
-async def stats_handler(message: Message):
+@dp.message(Command("admin"))
+async def admin_stats(message: Message):
 
     if message.from_user.id != 1128720977:
         return
@@ -624,14 +624,113 @@ async def warnings_handler(message: Message):
 
     await message.answer(text)
 
+@dp.message(Command("report"))
+async def report_handler(message: Message):
 
-@dp.message(F.text == "📄 Report")
-async def report_button(message: Message):
-    await message.answer(
-        "📄 PDF Report\n\n"
-        "Use command:\n"
-        "/report"
+    user_id = message.from_user.id
+
+    expenses = get_expenses_db(user_id)
+
+    pdf_name = f"report_{user_id}.pdf"
+
+    pdf = canvas.Canvas(pdf_name)
+
+    pdf.setFont("Helvetica-Bold", 18)
+    pdf.drawString(200, 800, "Finance Report")
+
+    pdf.setFont("Helvetica", 12)
+
+    y = 760
+
+    total = 0
+
+    if not expenses:
+
+        pdf.drawString(
+            100,
+            y,
+            "No expenses yet"
+        )
+
+    else:
+
+        for expense in expenses:
+
+            category = expense[2]
+            amount = expense[3]
+
+            total += amount
+
+            pdf.drawString(
+                100,
+                y,
+                f"{category} - {amount}$"
+            )
+
+            y -= 25
+
+        pdf.setFont("Helvetica-Bold", 14)
+
+        pdf.drawString(
+            100,
+            y - 20,
+            f"Total: {total}$"
+        )
+
+    pdf.save()
+
+    await message.answer_document(
+        document=FSInputFile(pdf_name),
+        caption="📄 Твій фінансовий звіт"
     )
+
+
+@dp.message(Command("stats"))
+async def show_stats(message: Message):
+
+    user_id = message.from_user.id
+
+    expenses = get_expenses_db(user_id)
+
+    if not expenses:
+        await message.answer(
+            "📭 У тебе ще немає витрат"
+        )
+        return
+
+    stats = {}
+
+    for expense in expenses:
+
+        category = expense[2]
+        amount = expense[3]
+
+        if category in stats:
+            stats[category] += amount
+        else:
+            stats[category] = amount
+
+    currency = get_currency_db(user_id)
+
+    text = "📊 Статистика:\n\n"
+
+    total = 0
+
+    for category, amount in stats.items():
+
+        total += amount
+
+        text += (
+            f"{category} — "
+            f"{amount} {currency}\n"
+        )
+
+    text += (
+        f"\n💰 Загалом: "
+        f"{total} {currency}"
+    )
+
+    await message.answer(text)
 
 
 @dp.message(Command("recommend"))
