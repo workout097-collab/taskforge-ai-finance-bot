@@ -1022,8 +1022,6 @@ async def show_expenses(message: Message):
 
     text = "💸 Твої витрати:\n\n"
 
-    for expense in expenses:
-
         for index, expense in enumerate(expenses, start=1):
             text += (
                 f"#{index} | "
