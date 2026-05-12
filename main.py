@@ -1121,29 +1121,36 @@ async def total_button(message: Message):
         f"💰 Загальні витрати: {total}$"
     )
 
-
 @dp.message(Command("delete"))
 async def delete_expense(message: Message):
 
     try:
         text = message.text.split()
 
-        expense_id = int(text[1])
+        delete_index = int(text[1])
 
         user_id = message.from_user.id
 
         expenses = get_expenses_db(user_id)
 
-        real_id = expenses[expense_id - 1][0]
+        if delete_index < 1 or delete_index > len(expenses):
+
+            await message.answer("❌ Wrong expense number")
+            return
+
+        real_id = expenses[delete_index - 1][0]
 
         delete_expense_db(user_id, real_id)
 
         await message.answer(
-            f"❌ Видалено витрату #{expense_id}"
+            f"❌ Видалено витрату #{delete_index}"
         )
 
-    except Exception as e:
-        await message.answer(f"ERROR: {e}")
+    except:
+        await message.answer(
+            "❌ Формат: /delete 1"
+        )
+
 
 @dp.message(Command("report"))
 async def report_handler(message: Message):
