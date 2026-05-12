@@ -1004,9 +1004,6 @@ async def settings_button(message: Message):
         "/currency USD"
     )
 
-
-
-
 @dp.message(Command("expenses"))
 async def show_expenses(message: Message):
 
@@ -1014,22 +1011,23 @@ async def show_expenses(message: Message):
 
     expenses = get_expenses_db(user_id)
 
-    print(expenses)
-
     if not expenses:
         await message.answer("📭 Немає витрат")
         return
 
     text = "💸 Твої витрати:\n\n"
 
-        for index, expense in enumerate(expenses, start=1):
-            text += (
-                f"#{index} | "
-                f"{expense[2]} - "
-                f"{expense[3]}\n"
-            )
+    for index, expense in enumerate(expenses, start=1):
+
+        text += (
+            f"#{index} | "
+            f"{expense[2]} - "
+            f"{expense[3]}\n"
+        )
 
     await message.answer(text)
+
+
 
 @dp.message(Command("total"))
 async def total_expenses(message: Message):
@@ -1092,34 +1090,6 @@ async def budget_status(message: Message):
 
             await message.answer(text)
 
-
-@dp.message(F.text == "📋 Витрати")
-async def expenses_button(message: Message):
-
-    total = sum(expense["amount"] for expense in expenses)
-
-    text = "💸 Твої витрати:\n\n"
-
-    for index, expense in enumerate(expenses, start=1):
-
-        text += (
-            f"{index}. "
-            f"{expense['category']} - "
-            f"{expense['amount']}$\n"
-        )
-
-    text += f"\nЗагалом: {total}$"
-
-    await message.answer(text)
-
-
-@dp.message(F.text == "💰 Всього")
-async def total_button(message: Message):
-    total = sum(expense[2] for expense in expenses)
-
-    await message.answer(
-        f"💰 Загальні витрати: {total}$"
-    )
 
 @dp.message(Command("delete"))
 async def delete_expense(message: Message):
