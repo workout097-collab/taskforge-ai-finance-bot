@@ -1121,13 +1121,6 @@ async def delete_expense(message: Message):
             "❌ Формат: /delete 1"
         )
 
-
-@dp.message(Command("report"))
-async def report_handler(message: Message):
-
-    await message.answer("📄 Generating PDF report...")
-
-
 @dp.message()
 async def message_handler(message: Message):
     await message.answer(
