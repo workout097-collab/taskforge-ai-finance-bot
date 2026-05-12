@@ -574,6 +574,8 @@ async def chart_handler(message: Message):
 
     await message.answer_photo(photo)
 
+
+
 @dp.message(Command("warnings"))
 async def warnings_handler(message: Message):
 
@@ -1022,11 +1024,12 @@ async def show_expenses(message: Message):
 
     for expense in expenses:
 
-        text += (
-            f"#{expense[0]} | "
-            f"{expense[2]} - "
-            f"{expense[3]}\n"
-        )
+        for index, expense in enumerate(expenses, start=1):
+            text += (
+                f"#{index} | "
+                f"{expense[2]} - "
+                f"{expense[3]}\n"
+            )
 
     await message.answer(text)
 
