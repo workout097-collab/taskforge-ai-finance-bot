@@ -1,22 +1,41 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-main_keyboard = ReplyKeyboardMarkup(
-    keyboard=[
-        [
-            KeyboardButton(text="➕ Add Expense"),
-            KeyboardButton(text="📊 Analytics")
-        ],
-        [
-            KeyboardButton(text="🎯 Goals"),
-            KeyboardButton(text="✅ Tasks")
-        ],
-        [
-            KeyboardButton(text="💰 Budget"),
-            KeyboardButton(text="📄 Report")
-        ],
-        [   KeyboardButton(text="💳 Subscriptions"),
-            KeyboardButton(text="⚙️ Settings")
-        ]
-    ],
-    resize_keyboard=True
-)
+from texts import TEXTS
+
+def get_main_keyboard(language="en"):
+
+     texts = TEXTS[language]
+
+     keyboard = ReplyKeyboardMarkup(
+
+            keyboard=[
+
+                [
+                    KeyboardButton(text=texts["add_expense"]),
+                    KeyboardButton(text=texts["analytics"])
+                ],
+
+                [
+                    KeyboardButton(text=texts["goals"]),
+                    KeyboardButton(text=texts["tasks"])
+                ],
+
+                [
+                    KeyboardButton(text=texts["budget"]),
+                    KeyboardButton(text=texts["report"])
+                ],
+
+                [
+                    KeyboardButton(text=texts["subscriptions"]),
+                    KeyboardButton(text=texts["settings"])
+                ],
+                [
+                    KeyboardButton(text="🌍 Language")
+                ]
+            ],
+
+            resize_keyboard=True
+        )
+
+     return keyboard
+

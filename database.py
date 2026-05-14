@@ -18,6 +18,8 @@ def init_db():
     )
     """)
 
+
+
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS settings (
         user_id INTEGER PRIMARY KEY,
@@ -66,9 +68,57 @@ def init_db():
     )
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS user_languages (
+        user_id INTEGER PRIMARY KEY,
+        language TEXT
+    )
+    """)
+
+
 
     conn.commit()
     conn.close()
+
+def set_language_db(user_id, language):
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT OR REPLACE INTO user_languages
+        (user_id, language)
+        VALUES (?, ?)
+        """,
+        (user_id, language)
+    )
+
+    conn.commit()
+    conn.close()
+
+def get_language_db(user_id):
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT language
+        FROM user_languages
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    )
+
+    result = cursor.fetchone()
+
+    conn.close()
+
+    if result:
+        return result[0]
+
+    return "ua"
 
 def save_user(user_id, username, first_name):
     conn = sqlite3.connect("expenses.db")
