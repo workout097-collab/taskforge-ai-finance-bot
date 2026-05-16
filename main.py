@@ -67,22 +67,17 @@ async def english_lang(message: Message):
 
     user_id = message.from_user.id
 
-    language = get_language_db(user_id)
-    t = translations[language]
-
     set_language_db(user_id, "en")
 
     await message.answer(
         "🇬🇧 English enabled",
-        reply_markup=get_main_keyboard("en")
+        reply_markup=get_main_keyboard(language)
     )
 
 @dp.message(Command("ukrainian"))
 async def ukrainian_lang(message: Message):
-    user_id = message.from_user.id
 
-    language = get_language_db(user_id)
-    t = translations[language]
+    user_id = message.from_user.id
 
     set_language_db(user_id, "ua")
 
@@ -90,6 +85,7 @@ async def ukrainian_lang(message: Message):
         "🇺🇦 Українська увімкнена",
         reply_markup=get_main_keyboard("ua")
     )
+
 
 
 

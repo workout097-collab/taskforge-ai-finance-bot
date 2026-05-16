@@ -123,7 +123,13 @@ translations = {
             "shopping": "Shopping",
             "health": "Health",
             "work": "Work",
-            "entertainment": "Entertainment"
+            "entertainment": "Entertainment",
+            "subscription_added": "✅ Subscription added",
+            "currency_changed": "🌍 Currency changed:",
+            "currency_available": "❌ Available: USD EUR PLN UAH",
+            "expenses_cleared": "🗑 Expenses cleared",
+            "task_completed": "✅ Task completed",
+
         },
 
     },
@@ -251,6 +257,11 @@ translations = {
             "bot_commands": "📚 Команди",
             "expenses_section": "💸 Витрати:",
             "analytics": "📊 Аналітика:",
+            "subscription_added": "✅ Підписку додано",
+            "currency_changed": "🌍 Валюту змінено:",
+            "currency_available": "❌ Доступно: USD EUR PLN UAH",
+            "expenses_cleared": "🗑 Витрати очищено",
+            "task_completed": "✅ Задачу виконано",
 
 
 
