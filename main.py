@@ -5,33 +5,36 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
 from aiogram.filters import Command
 import matplotlib.pyplot as plt
-from aiogram.types import FSInputFile
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from reportlab.pdfgen import canvas
 from aiogram.types import FSInputFile
-from database import *
-from database import get_premium_users_count
-from database import delete_task_db
-from database import delete_goal_db
-from database import clear_expenses_db
-from database import get_total_users
+from translations import translations
 from database import (
     get_total_users,
     get_total_expenses_count,
     get_total_tasks_count,
     get_premium_users_count
 )
-
+from database import (
+    clear_expenses_db,
+    delete_goal_db,
+    delete_task_db,
+    give_premium,
+    save_user,
+    get_premium_user,
+    add_premium_user
+)
 
 from database import  (get_month_expenses_db)
 
-
+from database import (
+    set_language_db,
+    get_language_db
+)
 from dotenv import load_dotenv
 import os
 import asyncio
-import json
 from database import init_db, add_expense_db, get_expenses_db
-
 from database import (
     init_db,
     add_expense_db,
@@ -58,6 +61,37 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
+
+@dp.message(Command("english"))
+async def english_lang(message: Message):
+
+    user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
+
+    set_language_db(user_id, "en")
+
+    await message.answer(
+        "🇬🇧 English enabled",
+        reply_markup=get_main_keyboard("en")
+    )
+
+@dp.message(Command("ukrainian"))
+async def ukrainian_lang(message: Message):
+    user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
+
+    set_language_db(user_id, "ua")
+
+    await message.answer(
+        "🇺🇦 Українська увімкнена",
+        reply_markup=get_main_keyboard("ua")
+    )
+
+
 
 @dp.message(Command("admin"))
 async def admin_stats(message: Message):
@@ -100,12 +134,20 @@ async def clear_expenses(message: Message):
 
     user_id = message.from_user.id
 
+    language = get_language_db(user_id)
+    t = translations[language]
+
     clear_expenses_db(user_id)
 
-    await message.answer("🗑 Всі витрати очищені")
+    await message.answer(t["expenses_cleared"])
 
 @dp.message(F.text == "+ Add Expense")
 async def expense_menu(message: Message):
+    user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
+
     await message.answer(
         "💸 Add expense:\n\n"
         "Example:\n"
@@ -123,34 +165,13 @@ async def premium_users_command(message: Message):
         f"💎 Premium users: {total}"
     )
 
-
 @dp.message(F.text == "✅ Tasks")
-async def tasks_menu(message: Message):
-    await message.answer(
-        "✅ VTask commands:\n\n"
-        "/task Buy milk\n"
-        "/tasks\n"
-        "/done 1\n"
-        "/delete_task 1"
-
-    )
-    return
-
-@dp.message(Command("task"))
-async def add_task(message: Message):
+async def tasks_button(message: Message):
 
     user_id = message.from_user.id
 
-    text = message.text.replace("/task ", "")
-
-    add_task_db(user_id, text)
-
-    await message.answer(
-        f"✅ Задачу додано:\n\n{text}"
-    )
-
-@dp.message(F.text == "✅ Tasks")
-async def tasks_button(message: Message):
+    language = get_language_db(user_id)
+    t = translations[language]
 
     await message.answer(
         "📝 Tasks menu:\n\n"
@@ -159,18 +180,26 @@ async def tasks_button(message: Message):
         "/done 1"
     )
 
-@dp.message(F.text == "📊 Analytics")
-async def analytics_help(message: Message):
+@dp.message(Command("task"))
+async def add_task(message: Message):
+    user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
+
+    text = message.text.replace("/task ", "")
+
+    add_task_db(user_id, text)
 
     await message.answer(
-        "📊 Analytics:\n\n"
-        "/stats\n"
-        "/chart\n"
-        "/month"
+        f"{t['task_added']}\n\n{text}"
     )
 
 @dp.message(F.text == "➕ Add Expense")
 async def add_expense_help(message: Message):
+    user_id = message.from_user.id
+    language = get_language_db(user_id)
+    t = translations[language]
 
     await message.answer(
         "💸 Send expense like:\n\n"
@@ -191,22 +220,24 @@ async def delete_task_command(message: Message):
     await message.answer("🗑 Task deleted!")
 
 
-
 @dp.message(Command("tasks"))
 async def show_tasks(message: Message):
 
     user_id = message.from_user.id
 
+    language = get_language_db(user_id)
+    t = translations[language]
+
     tasks = get_tasks_db(user_id)
 
     if not tasks:
-
-        await message.answer("📭 Немає задач")
+        await message.answer(t["no_tasks"])
         return
 
-    text = "📝 Твої задачі:\n\n"
+    text = f"{t['tasks']}\n\n"
 
     for index, task in enumerate(tasks, start=1):
+
         status = "✅" if task[3] == 1 else "⬜"
 
         text += f"{status} #{task[0]} {task[2]}\n"
@@ -215,8 +246,10 @@ async def show_tasks(message: Message):
 
 @dp.message(Command("done"))
 async def complete_task(message: Message):
-
     user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
 
     text = message.text.split()
 
@@ -224,41 +257,44 @@ async def complete_task(message: Message):
 
     complete_task_db(user_id, task_id)
 
-    await message.answer("✅ Задачу виконано")
+    await message.answer(t["task_completed"])
 
 
 @dp.message(Command("help"))
 async def help_command(message: Message):
+    user_id = message.from_user.id
 
+    language = get_language_db(user_id)
+    t = translations[language]
     text = (
-        "🤖 Команди бота:\n\n"
+        f"{t['bot_commands']}\n\n"
 
-        "💸 Витрати:\n"
+        f"{t['expenses_section']}\n"
         "/add food 300\n"
         "/expenses\n"
         "/delete_task TASK_ID\n"
         "/clear_expenses\n"
 
-        "📊 Аналітика:\n"
+        f"\n{t['analytics']}\n"
         "/stats\n"
         "/chart\n"
         "/insights\n"
         "/warnings\n"
         "/month\n\n"
 
-        "💰 Бюджет:\n"
+        f"{t['budget_section']}\n"
         "/budget 5000\n"
         "/budget_status\n\n"
 
-        "🎯 Цілі:\n"
+        f"{t['goals_section']}\n"
         "/goal 10000 MacBook\n"
         "/goal_status\n\n"
 
-        "📺 Підписки:\n"
+        f"{t['subscriptions_section']}\n"
         "/subscribe Netflix 40\n"
         "/subscriptions\n\n"
 
-        "🌍 Валюта:\n"
+        f"{t['currency_section']}\n"
         "/currency USD\n"
         "/currency PLN\n"
         "/currency UAH\n\n"
@@ -273,7 +309,11 @@ async def help_command(message: Message):
 
 @dp.message(Command("delete_task"))
 async def delete_task(message: Message):
+
         user_id = message.from_user.id
+
+        language = get_language_db(user_id)
+        t = translations[language]
 
         text = message.text.split()
 
@@ -293,7 +333,11 @@ async def delete_task(message: Message):
 @dp.message(Command("subscribe"))
 async def subscribe_command(message: Message):
 
+
     user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
 
     text = message.text.split()
 
@@ -305,21 +349,23 @@ async def subscribe_command(message: Message):
     currency = get_currency_db(user_id)
 
     await message.answer(
-        f"📺 Підписка додана!\n\n"
+        f"{t['subscription_added']}\n\n"
         f"{name} — {amount} {currency}/month"
     )
 
 
 @dp.message(Command("subscriptions"))
 async def show_subscriptions(message: Message):
-
     user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
 
     subscriptions = get_subscriptions_db(user_id)
 
     currency = get_currency_db(user_id)
 
-    text = "📺 Твої підписки:\n\n"
+    text = f"{t['subscriptions']}\n\n"
 
     total = 0
 
@@ -329,14 +375,16 @@ async def show_subscriptions(message: Message):
 
         total += sub[3]
 
-    text += f"\n💰 Разом: {total} {currency}/month"
+    text += f"\n{t['total']}: {total} {currency}/month"
 
     await message.answer(text)
 
 @dp.message(Command("delete_goal"))
 async def delete_goal(message: Message):
-
     user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
 
     delete_goal_db(user_id)
 
@@ -345,9 +393,13 @@ async def delete_goal(message: Message):
 @dp.message(Command("goal"))
 async def goal_handler(message: Message):
 
+
     try:
 
         user_id = message.from_user.id
+
+        language = get_language_db(user_id)
+        t = translations[language]
 
         text = message.text.split()
 
@@ -364,7 +416,7 @@ async def goal_handler(message: Message):
         currency = get_currency_db(user_id)
 
         await message.answer(
-            f"🎯 Ціль створена!\n\n"
+            f"{t['goal_created']}\n\n"
             f"{goal_name} — "
             f"{goal_amount} {currency}"
         )
@@ -372,7 +424,7 @@ async def goal_handler(message: Message):
     except:
 
         await message.answer(
-            "❌ Формат:\n/goal 5000 MacBook"
+            t["goal_format"]
         )
 
 @dp.message(Command("goal_status"))
@@ -380,12 +432,14 @@ async def goal_status_handler(message: Message):
 
     user_id = message.from_user.id
 
+    language = get_language_db(user_id)
+    t = translations[language]
+
     goal = get_goal_db(user_id)
 
     if not goal:
-
         await message.answer(
-            "❌ Ціль не встановлена"
+            t["goal_not_set"]
         )
 
         return
@@ -406,10 +460,11 @@ async def goal_status_handler(message: Message):
     currency = get_currency_db(user_id)
 
     text = (
-        f"🎯 {goal_name}\n\n"
-        f"💰 Ціль: {goal_amount} {currency}\n"
-        f"💵 Потенційно збережено: {saved} {currency}\n"
-        f"📈 Прогрес: {progress:.1f}%"
+        f"{t['goal_status']}\n\n"
+        f"🎯 {goal_name}\n"
+        f"💰 Goal: {goal_amount} {currency}\n"
+        f"💵 Saved: {saved} {currency}\n"
+        f"📈 Progress: {progress:.1f}%"
     )
 
     await message.answer(text)
@@ -419,12 +474,14 @@ async def currency_handler(message: Message):
 
     user_id = message.from_user.id
 
+    language = get_language_db(user_id)
+    t = translations[language]
+
     text = message.text.split()
 
     if len(text) != 2:
-
         await message.answer(
-            "❌ Формат:\n/currency USD"
+            t["currency_format"]
         )
 
         return
@@ -434,9 +491,8 @@ async def currency_handler(message: Message):
     allowed = ["USD", "EUR", "PLN", "UAH"]
 
     if currency not in allowed:
-
         await message.answer(
-            "❌ Доступно:\nUSD EUR PLN UAH"
+            t["currency_available"]
         )
 
         return
@@ -444,7 +500,7 @@ async def currency_handler(message: Message):
     set_currency_db(user_id, currency)
 
     await message.answer(
-        f"💰 Валюта змінена на {currency}"
+        f"{t['currency_changed']} {currency}"
     )
 
 @dp.message(Command("insights"))
@@ -452,20 +508,19 @@ async def insights_handler(message: Message):
 
     user_id = message.from_user.id
 
-    if not is_premium(user_id):
-        await message.answer(
-            "👑 Premium feature\n\n"
-            "Trial закінчився.\n"
-            "Підписка: 5$/month"
-        )
+    language = get_language_db(user_id)
+    t = translations[language]
 
-        return
+    await message.answer(
+        t["premium_required"]
+    )
 
     expenses = get_expenses_db(user_id)
 
     if not expenses:
-        await message.answer("Немає витрат 😄")
-        return
+        await message.answer(
+            t["no_expenses"]
+        )
 
     stats = {}
 
@@ -479,9 +534,9 @@ async def insights_handler(message: Message):
         total += amount
 
         if category in stats:
-            stats[category] += amount
+           stats[category] += amount
         else:
-            stats[category] = amount
+          stats[category] = amount
 
     top_category = max(stats, key=stats.get)
 
@@ -490,19 +545,19 @@ async def insights_handler(message: Message):
     percent = round((top_amount / total) * 100)
 
     text = (
-        f"📊 AI Аналіз:\n\n"
-        f"🔥 Найбільше витрат: {top_category} — {top_amount}$\n\n"
-        f"⚠️ {top_category} займає {percent}% всіх витрат\n\n"
+    f"{t['ai_analysis']}\n\n"
+    f"{t['top_expense']} {top_category} — {top_amount}$\n\n"
+    f"⚠️ {top_category} {t['expense_percent']} {percent}%\n\n"
     )
 
     if percent > 50:
-        text += (
-            f"💡 Спробуй зменшити витрати на "
-            f"{top_category}"
-        )
+            text += (
+                f"{t['reduce_expenses']} "
+                f"{top_category}"
+            )
 
     else:
-        text += "✅ Баланс витрат виглядає добре"
+         text += t["good_balance"]
 
     await message.answer(text)
 
@@ -578,8 +633,10 @@ def detect_category(text):
 
 @dp.message(Command("chart"))
 async def chart_handler(message: Message):
-
     user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
 
     expenses = get_expenses_db(user_id)
 
@@ -623,10 +680,13 @@ async def warnings_handler(message: Message):
 
     user_id = message.from_user.id
 
+    language = get_language_db(user_id)
+    t = translations[language]
+
     expenses = get_expenses_db(user_id)
 
     if not expenses:
-        await message.answer("❌ У тебе немає витрат")
+        await message.answer(t["no_expenses"])
         return
 
     stats = {}
@@ -645,7 +705,7 @@ async def warnings_handler(message: Message):
         else:
             stats[category] = amount
 
-    text = "🤖 AI Аналіз витрат:\n\n"
+    text = f"{t['warnings_title']}\n\n"
 
     for category, amount in stats.items():
 
@@ -654,24 +714,26 @@ async def warnings_handler(message: Message):
         if percent >= 50:
 
             text += (
-                f"⚠️ У тебе дуже великі витрати "
-                f"на {category} ({percent:.1f}%)\n"
+                f"{t['big_expenses']} "
+                f"{category} ({percent:.1f}%)\n"
             )
 
     if total > 1000:
 
-        text += "\n🔥 Ти витрачаєш дуже багато грошей"
+        text += f"\n{t['too_much_spending']}"
 
     elif total < 200:
 
-        text += "\n✅ У тебе хороший контроль витрат"
+        text += f"\n{t['good_control']}"
 
     await message.answer(text)
 
 @dp.message(Command("report"))
 async def report_handler(message: Message):
-
     user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
 
     expenses = get_expenses_db(user_id)
 
@@ -781,12 +843,13 @@ async def show_stats(message: Message):
 
     user_id = message.from_user.id
 
+    language = get_language_db(user_id)
+    t = translations[language]
+
     expenses = get_expenses_db(user_id)
 
     if not expenses:
-        await message.answer(
-            "📭 У тебе ще немає витрат"
-        )
+        await message.answer(t["no_expenses"])
         return
 
     stats = {}
@@ -803,7 +866,7 @@ async def show_stats(message: Message):
 
     currency = get_currency_db(user_id)
 
-    text = "📊 Статистика:\n\n"
+    text = f"{t['statistics']}\n\n"
 
     total = 0
 
@@ -811,13 +874,15 @@ async def show_stats(message: Message):
 
         total += amount
 
-        text += (
-            f"{category} — "
-            f"{amount} {currency}\n"
-        )
+        print(category)
+        print(type(category))
+
+        translated_category = t["categories"].get(category, category)
+
+        text += f"{translated_category} — {amount}$\n"
 
     text += (
-        f"\n💰 Загалом: "
+        f"\n{t['total']}: "
         f"{total} {currency}"
     )
 
@@ -829,10 +894,13 @@ async def recommend_handler(message: Message):
 
     user_id = message.from_user.id
 
+    language = get_language_db(user_id)
+    t = translations[language]
+
     expenses = get_expenses_db(user_id)
 
     if not expenses:
-        await message.answer("❌ Немає витрат")
+        await message.answer(t["no_expenses"])
         return
 
     stats = {}
@@ -858,13 +926,12 @@ async def recommend_handler(message: Message):
     save_money = biggest_amount * 0.2
 
     text = (
-        f"🤖 AI Recommendations\n\n"
-        f"🔥 Найбільше витрат йде на: {biggest_category}\n"
-        f"💸 Це {percent:.1f}% всіх витрат\n\n"
-        f"💡 Якщо зменшити витрати на "
-        f"{biggest_category} на 20%,\n"
-        f"ти зекономиш приблизно "
-        f"{save_money:.0f}$"
+        f"{t['recommendations_title']}\n\n"
+        f"{t['biggest_expense']}{biggest_category}\n"
+        f"{t['expense_percent']} {percent:.1f}%\n\n"
+        f"{t['reduce_expenses']} "
+        f"{biggest_category} 20%,\n"
+        f"{t['save_money']} {save_money}$"
     )
 
     await message.answer(text)
@@ -876,7 +943,7 @@ async def recommend_handler(message: Message):
     expenses = get_expenses_db(user_id)
 
     if not expenses:
-        await message.answer("❌ Немає витрат")
+        await message.answer(t["no_expenses"])
         return
 
     pdf_name = f"report_{user_id}.pdf"
@@ -919,13 +986,16 @@ async def recommend_handler(message: Message):
 
     await message.answer_document(
         document=FSInputFile(pdf_name),
-        caption="📄 Твій фінансовий звіт"
+        caption=t["financial_report_caption"]
     )
 
 @dp.message(Command("month"))
 async def month_stats(message: Message):
 
     user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
 
     current_month = datetime.now().strftime("%Y-%m")
 
@@ -947,12 +1017,18 @@ async def month_stats(message: Message):
         else:
             stats[category] = amount
 
-    text = "📅 Витрати за місяць:\n\n"
+    text = f"{t['month_stats']}\n\n"
+
+    currency = get_currency_db(user_id)
 
     for category, amount in stats.items():
-        text += f"{category} — {amount}$\n"
+        translated_category = t["categories"].get(category, category)
 
-    text += f"\n💰 Загалом: {total}$"
+        text += f"{translated_category} - {amount}{currency}\n"
+
+        currency = get_currency_db(user_id)
+
+    text += f"\n💰 {t['total']}: {total}{currency}"
 
     await message.answer(text)
 
@@ -960,6 +1036,10 @@ async def month_stats(message: Message):
 @dp.message(Command("start"))
 async def start_handler(message: Message):
     user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
+
     username = message.from_user.username
     first_name = message.from_user.first_name
 
@@ -979,7 +1059,10 @@ async def start_handler(message: Message):
         )
 
         await message.answer(
-            "🎁 Тобі активовано 7-денний Premium Trial!"
+            " Welcome to TaskForge AI\n\n"
+            "Track:\n"
+            "• expenses\n"
+            "• tasks\n"
         )
 
     await message.answer(
@@ -1003,6 +1086,9 @@ async def add_expense(message: Message):
 
         user_id = message.from_user.id
 
+        language = get_language_db(user_id)
+        t = translations[language]
+
         text = message.text.split()
 
         if len(text) == 2:
@@ -1024,27 +1110,35 @@ async def add_expense(message: Message):
 
         currency = get_currency_db(user_id)
 
+        language = get_language_db(user_id)
+
+        t = translations[language]
+
         await message.answer(
-            f"✅ Додано!\n\n"
-            f"Категорія: {category}\n"
-            f"Сума: {amount} {currency}"
+            f"{t['added']}\n\n"
+            f"{t['category']}: {category}\n"
+            f"{t['amount']}: {amount} {currency}"
         )
 
     except ValueError:
 
         await message.answer(
-            "❌ Сума має бути числом"
+            t["amount_must_be_number"]
         )
 
     except:
 
         await message.answer(
-            "❌ Формат:\n/add uber 25"
+            t["add_format"]
         )
 
 
 @dp.message(F.text == "📊 Analytics")
 async def analytics_button(message: Message):
+    user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
 
     await message.answer(
         "/stats\n/chart\n/insights\n/warnings\n/month"
@@ -1052,6 +1146,10 @@ async def analytics_button(message: Message):
 
 @dp.message(F.text == "🎯 Goals")
 async def goals_button(message: Message):
+    user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
 
     await message.answer(
         "/goal 10000 MacBook\n/goal_status"
@@ -1083,20 +1181,28 @@ async def show_expenses(message: Message):
 
     user_id = message.from_user.id
 
+    language = get_language_db(user_id)
+    t = translations[language]
+
     expenses = get_expenses_db(user_id)
 
+    currency = get_currency_db(user_id)
     if not expenses:
-        await message.answer("📭 Немає витрат")
+        await message.answer(t["no_expenses"])
         return
 
-    text = "💸 Твої витрати:\n\n"
+    text = f"{t['your_expenses']}\n\n"
 
     for index, expense in enumerate(expenses, start=1):
 
+        translated_category = t["categories"].get(
+            expense[2],
+            expense[2]
+        )
         text += (
             f"#{index} | "
-            f"{expense[2]} - "
-            f"{expense[3]}\n"
+            f"{translated_category} - "
+            f"{expense[3]} {currency}\n"
         )
 
     await message.answer(text)
@@ -1105,13 +1211,18 @@ async def show_expenses(message: Message):
 
 @dp.message(Command("total"))
 async def total_expenses(message: Message):
+    user_id = message.from_user.id
 
-    expenses = get_expenses_db()
+    language = get_language_db(user_id)
+    t = translations[language]
+    expenses = get_expenses_db(user_id)
 
-    total = sum(expense[2] for expense in expenses)
+    total = sum(expense[3] for expense in expenses)
+    currency = get_currency_db(user_id)
 
     await message.answer(
-        f"💰 Загальні витрати: {total}$"
+
+        f"💰 {t['total_expenses']}: {total}{currency}"
     )
 
 @dp.message(Command("budget"))
@@ -1121,31 +1232,39 @@ async def set_budget(message: Message):
 
             user_id = message.from_user.id
 
+            language = get_language_db(user_id)
+            t = translations[language]
+
             text = message.text.split()
 
             amount = int(text[1])
 
             set_budget_db(user_id, amount)
 
+            currency = get_currency_db(user_id)
+
             await message.answer(
-                f"💰 Бюджет встановлено: {amount}$"
+                f"💰 {t['budget_set']}: {amount}{currency}"
             )
 
         except:
 
             await message.answer(
-                "❌ Формат:\n/budget 2000"
+                t["budget_format"]
             )
 @dp.message(Command("budget_status"))
 async def budget_status(message: Message):
 
             user_id = message.from_user.id
 
+            language = get_language_db(user_id)
+            t = translations[language]
+
             budget = get_budget_db(user_id)
 
             if budget is None:
                 await message.answer(
-                    "❌ Бюджет не встановлено"
+                    t["budget_not_set"]
                 )
 
                 return
@@ -1156,10 +1275,13 @@ async def budget_status(message: Message):
 
             left = budget - total_spent
 
+            currency = get_currency_db(user_id)
+
             text = (
-                f"💰 Бюджет: {budget}$\n\n"
-                f"📉 Витрачено: {total_spent}$\n\n"
-                f"💵 Залишилось: {left}$"
+                f"💰 {t['budget']}: {budget}{currency}\n\n"
+                f"🧾 {t['spent']}: {total_spent}{currency}\n\n"
+                f"💵 {t['left']}: {left}{currency}"
+
             )
 
             await message.answer(text)
@@ -1173,34 +1295,20 @@ async def language_button(message: Message):
         "/ukrainian"
     )
 
-
-@dp.message(Command("english"))
-async def english_lang(message: Message):
-
-    await message.answer(
-        "🇬🇧 English enabled",
-        reply_markup=get_main_keyboard("en")
-    )
-
-
-@dp.message(Command("ukrainian"))
-async def ukrainian_lang(message: Message):
-
-    await message.answer(
-        "🇺🇦 Українська увімкнена",
-        reply_markup=get_main_keyboard("ua")
-    )
-
-
 @dp.message(Command("delete"))
 async def delete_expense(message: Message):
 
     try:
+
+
         text = message.text.split()
 
         delete_index = int(text[1])
 
         user_id = message.from_user.id
+
+        language = get_language_db(user_id)
+        t = translations[language]
 
         expenses = get_expenses_db(user_id)
 
@@ -1214,19 +1322,27 @@ async def delete_expense(message: Message):
         delete_expense_db(user_id, real_id)
 
         await message.answer(
-            f"❌ Видалено витрату #{delete_index}"
-        )
+                f"{t['expense_deleted']} #{delete_index}"
+            )
+
 
     except:
         await message.answer(
-            "❌ Формат: /delete 1"
-        )
+            t["delete_format"]
+    )
+
 
 @dp.message()
 async def message_handler(message: Message):
+
+    user_id = message.from_user.id
+
+    language = get_language_db(user_id)
+    t = translations[language]
+
     await message.answer(
-        "Я не зрозумів команду 😄"
-    )
+        t["unknown_command"]
+        )
 
 async def send_daily_reminder():
 
@@ -1244,10 +1360,13 @@ async def send_daily_reminder():
 
         user_id = user[0]
 
+        language = get_language_db(user_id)
+        t = translations[language]
+
         try:
             await bot.send_message(
                 user_id,
-                "💸 Не забудь записати сьогоднішні витрати"
+                t["daily_reminder"]
             )
 
         except:
@@ -1272,8 +1391,11 @@ if __name__ == "__main__":
 
 @dp.message(Command("givepremium"))
 async def give_premium_command(message: Message):
+    user_id = message.from_user.id
+    language = get_language_db(user_id)
+    t = translations[language]
 
-    admin_id = YOUR_ID
+    admin_id = 1128720977
 
     if message.from_user.id != admin_id:
         return
@@ -1284,4 +1406,6 @@ async def give_premium_command(message: Message):
 
     give_premium(user_id)
 
-    await message.answer("✅ Premium видано")
+    await message.answer(
+        t["premium_given"]
+    )
