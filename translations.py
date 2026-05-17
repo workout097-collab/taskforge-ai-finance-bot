@@ -123,6 +123,9 @@ translations = {
             "currency_available": "❌ Available: USD EUR PLN UAH",
             "expenses_cleared": "🗑 Expenses cleared",
             "task_completed": "✅ Task completed",
+            "language": "🌍 Language",
+            "premium": "👑 Premium",
+
 
     },
 
@@ -255,6 +258,9 @@ translations = {
             "currency_available": "❌ Доступно: USD EUR PLN UAH",
             "expenses_cleared": "🗑 Витрати очищено",
             "task_completed": "✅ Задачу виконано",
+            "language": "🌍 Мова",
+            "premium": "👑 Преміум",
+
 
          }
     }

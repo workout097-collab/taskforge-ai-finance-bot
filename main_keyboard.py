@@ -27,11 +27,12 @@ def get_main_keyboard(language="en"):
 
                 [
                     KeyboardButton(text=texts["subscriptions"]),
-                    KeyboardButton(text="💱 Currency")
+                    KeyboardButton(text=texts["currency"])
                 ],
                 [
-                    KeyboardButton(text="🌍 Language"),
-                    KeyboardButton(text="👑 Premium")
+                    KeyboardButton(text=texts["language"]),
+                    KeyboardButton(text=texts["premium"])
+
                 ]
             ],
 
