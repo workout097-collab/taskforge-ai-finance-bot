@@ -598,5 +598,3 @@ def clear_expenses_db(user_id):
     conn.commit()
     conn.close()
 
-init_db()
-create_premium_table()
