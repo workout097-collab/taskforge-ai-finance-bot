@@ -1336,9 +1336,11 @@ async def delete_expense(message: Message):
             t["delete_format"]
     )
 
-
 @dp.message()
 async def message_handler(message: Message):
+
+    if message.text.startswith("/"):
+        return
 
     user_id = message.from_user.id
 
@@ -1347,7 +1349,7 @@ async def message_handler(message: Message):
 
     await message.answer(
         t["unknown_command"]
-        )
+    )
 
 async def send_daily_reminder():
 
