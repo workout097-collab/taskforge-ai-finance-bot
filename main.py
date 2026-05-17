@@ -553,7 +553,7 @@ async def insights_handler(message: Message):
 
     await message.answer(text)
 
-@dp.message(F.text == "📄 Report")
+@dp.message(F.text.in_(["📄 Report", "📄 Звіт"]))
 async def report_button(message: Message):
 
     await report_handler(message)
