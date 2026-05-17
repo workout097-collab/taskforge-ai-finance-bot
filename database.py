@@ -357,9 +357,6 @@ def create_premium_table():
     conn.commit()
     conn.close()
 
-init_db()
-create_premium_table()
-
 def add_premium_user(user_id, premium, trial_end):
 
     conn = sqlite3.connect("expenses.db")
@@ -600,3 +597,6 @@ def clear_expenses_db(user_id):
 
     conn.commit()
     conn.close()
+
+init_db()
+create_premium_table()
