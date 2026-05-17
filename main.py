@@ -290,10 +290,6 @@ async def help_command(message: Message):
         "/subscribe Netflix 40\n"
         "/subscriptions\n\n"
 
-        f"{t['currency_section']}\n"
-        "/currency USD\n"
-        "/currency PLN\n"
-        "/currency UAH\n\n"
 
         "✅ VTask:\n"
         "/task Go to the gym\n"
@@ -1065,7 +1061,8 @@ async def start_handler(message: Message):
         "• budgets\n\n"
         "👇 Use the menu below\n"
         "or type /help",
-        reply_markup=get_main_keyboard("en")
+        reply_markup=get_main_keyboard(language)
+
     )
 
 
