@@ -55,6 +55,7 @@ from database import add_task_db, get_tasks_db, complete_task_db
 
 load_dotenv(dotenv_path=".env")
 init_db()
+create_premium_table()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
