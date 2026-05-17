@@ -30,7 +30,8 @@ def get_main_keyboard(language="en"):
                     KeyboardButton(text="💱 Currency")
                 ],
                 [
-                    KeyboardButton(text="🌍 Language")
+                    KeyboardButton(text="🌍 Language"),
+                    KeyboardButton(text="👑 Premium")
                 ]
             ],
 

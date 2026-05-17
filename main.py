@@ -62,6 +62,23 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 
+@dp.message(F.text == "👑 Premium")
+async def premium_button(message: Message):
+
+    await message.answer(
+        "👑 TaskForge Premium\n\n"
+        "Unlock:\n\n"
+        "• AI Insights\n"
+        "• Charts\n"
+        "• PDF Reports\n"
+        "• Goals\n"
+        "• Subscriptions\n"
+        "• Advanced Analytics\n\n"
+        "🎁 7-day free trial\n"
+        "💰 4.99$/month\n\n"
+        "🚀 Payments coming soon"
+    )
+
 @dp.message(Command("english"))
 async def english_lang(message: Message):
 
