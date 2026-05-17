@@ -39,6 +39,7 @@ translations = {
         "goals_section": "🎯 Goals:",
         "subscriptions_section": "📺 Subscriptions:",
         "currency_section": "🌍 Currency:",
+        "currency": "💱 Currency",
 
         "goal_created": "🎯 Goal created!",
         "goal_format": "❌ Format:\n/goal 5000 MacBook",
@@ -49,22 +50,16 @@ translations = {
         "Subscription: 5$/month"
 ),
 
-        "no_expenses": "No expenses 😄",
-
         "ai_analysis": "📊 AI Analysis",
         "top_expense": "🔥 Biggest expenses:",
         "expense_percent": "takes",
         "reduce_expenses": "💡 Try reducing expenses on",
         "good_balance": "✅ Expense balance looks good",
 
-        "no_expenses": "❌ You don't have any expenses",
-
         "warnings_title": "🤖 AI Expense Analysis",
         "big_expenses": "⚠️ You spend too much on",
         "too_much_spending": "🔥 You spend too much money",
         "good_control": "✅ You have good expense control",
-
-        "no_expenses": "📭 You don't have any expenses yet",
 
         "total": "💰 Total",
 
@@ -77,7 +72,6 @@ translations = {
         "financial_report_caption": "📄 Your financial report",
 
         "month_stats": "📅 Monthly expenses:",
-        "total": "Total",
 
         "trial_activated": "🎁 Your 7-day Premium Trial has been activated!",
 
@@ -93,8 +87,6 @@ translations = {
 
         "amount_must_be_number": "❌ Amount must be a number",
         "add_format": "❌ Format:\n/add uber 25",
-
-        "no_expenses": "📚 No expenses",
         "your_expenses": "🦋 Your expenses:",
 
         "total_expenses": "Total expenses",
@@ -123,23 +115,14 @@ translations = {
             "shopping": "Shopping",
             "health": "Health",
             "work": "Work",
-            "entertainment": "Entertainment",
-            "subscription_added": "✅ Subscription added",
-            "currency_changed": "🌍 Currency changed:",
-            "currency_available": "❌ Available: USD EUR PLN UAH",
-            "expenses_cleared": "🗑 Expenses cleared",
-            "task_completed": "✅ Task completed",
-            "subscription_added": "✅ Subscription added",
-
-            "currency_changed": "🌍 Currency changed:",
-            "currency_available": "❌ Available: USD EUR PLN UAH",
-            "expenses_cleared": "🗑 Expenses cleared",
-            "task_completed": "✅ Task completed",
-
-            "currency": "💱 Currency",
-
+            "entertainment": "Entertainment"
 
         },
+            "subscription_added": "✅ Subscription added",
+            "currency_changed": "🌍 Currency changed:",
+            "currency_available": "❌ Available: USD EUR PLN UAH",
+            "expenses_cleared": "🗑 Expenses cleared",
+            "task_completed": "✅ Task completed",
 
     },
 
@@ -178,19 +161,11 @@ translations = {
         "large_expenses": "⚠️ У тебе великі витрати на",
         "recommend_reduce": "💡 Спробуй зменшити витрати на",
 
-        "categories": {
-            "food": "Їжа",
-            "transport": "Транспорт",
-            "shopping": "Покупки",
-            "health": "Здоров'я",
-            "work": "Робота",
-            "entertainment": "Розваги",
-        },
-
             "budget_section": "💰 Бюджет:",
             "goals_section": "🎯 Цілі:",
             "subscriptions_section": "📺 Підписки:",
             "currency_section": "🌍 Валюта:",
+            "currency": "💱 Валюта",
 
             "goal_created": "🎯 Ціль створена!",
             "goal_format": "❌ Формат:\n/goal 5000 MacBook",
@@ -266,22 +241,21 @@ translations = {
             "bot_commands": "📚 Команди",
             "expenses_section": "💸 Витрати:",
             "analytics": "📊 Аналітика:",
+
+            "categories": {
+            "food": "Їжа",
+            "transport": "Транспорт",
+            "shopping": "Покупки",
+            "health": "Здоров'я",
+            "work": "Робота",
+            "entertainment": "Розваги",
+            },
             "subscription_added": "✅ Підписку додано",
             "currency_changed": "🌍 Валюту змінено:",
             "currency_available": "❌ Доступно: USD EUR PLN UAH",
             "expenses_cleared": "🗑 Витрати очищено",
             "task_completed": "✅ Задачу виконано",
-            "subscription_added": "✅ Підписку додано",
 
-            "currency_changed": "🌍 Валюту змінено:",
-            "currency_available": "❌ Доступно: USD EUR PLN UAH",
-            "expenses_cleared": "🗑 Витрати очищено",
-            "task_completed": "✅ Задачу виконано",
-
-            "currency": "💱 Валюта",
-
-
-
-        }
+         }
     }
 

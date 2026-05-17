@@ -71,7 +71,7 @@ async def english_lang(message: Message):
 
     await message.answer(
         "🇬🇧 English enabled",
-        reply_markup=get_main_keyboard(language)
+        reply_markup=get_main_keyboard("en")
     )
 
 @dp.message(Command("ukrainian"))
@@ -1376,11 +1376,6 @@ async def main():
 
     await dp.start_polling(bot)
 
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-
 @dp.message(Command("givepremium"))
 async def give_premium_command(message: Message):
     user_id = message.from_user.id
@@ -1401,3 +1396,10 @@ async def give_premium_command(message: Message):
     await message.answer(
         t["premium_given"]
     )
+
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+
