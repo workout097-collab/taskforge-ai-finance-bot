@@ -1054,12 +1054,6 @@ async def start_handler(message: Message):
             trial_end
         )
 
-        await message.answer(
-            " Welcome to TaskForge AI\n\n"
-            "Track:\n"
-            "• expenses\n"
-            "• tasks\n"
-        )
 
     await message.answer(
         "🚀 Welcome to TaskForge AI\n\n"
