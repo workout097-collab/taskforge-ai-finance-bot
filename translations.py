@@ -26,8 +26,6 @@ translations = {
         "budget_not_set": "❌ Budget not set",
         "subscriptions": "📺 Your subscriptions:",
         "statistics": "📊 Statistics:",
-        "ai_analysis": "🤖 AI Analysis:",
-        "total": "💰 Total",
         "use_format": "❌ Use:",
         "goal_status": "🎯 Goal status",
         "goal_not_set": "❌ Goal not set",
@@ -39,7 +37,6 @@ translations = {
         "goals_section": "🎯 Goals:",
         "subscriptions_section": "📺 Subscriptions:",
         "currency_section": "🌍 Currency:",
-        "currency": "💱 Currency",
 
         "goal_created": "🎯 Goal created!",
         "goal_format": "❌ Format:\n/goal 5000 MacBook",
@@ -52,16 +49,12 @@ translations = {
 
         "ai_analysis": "📊 AI Analysis",
         "top_expense": "🔥 Biggest expenses:",
-        "expense_percent": "takes",
-        "reduce_expenses": "💡 Try reducing expenses on",
         "good_balance": "✅ Expense balance looks good",
 
         "warnings_title": "🤖 AI Expense Analysis",
         "big_expenses": "⚠️ You spend too much on",
         "too_much_spending": "🔥 You spend too much money",
         "good_control": "✅ You have good expense control",
-
-        "total": "💰 Total",
 
         "recommendations_title": "🤖 AI Recommendations",
         "biggest_expense": "🔥 Biggest expenses go to:",
@@ -93,10 +86,13 @@ translations = {
         "budget_set": "Budget set",
         "budget_format": "❌ Format:\n/budget 2000",
 
-        "budget_not_set": "❌ Budget not set",
         "budget": "Budget",
         "spent": "Spent",
         "left": "Left",
+
+        "subscriptions_button": "📺 Subscriptions",
+        "tasks_button": "✅ Tasks",
+        "budget_button": "💰 Budget",
 
 
         "expense_deleted": "❌ Expense deleted",
@@ -125,6 +121,27 @@ translations = {
             "task_completed": "✅ Task completed",
             "language": "🌍 Language",
             "premium": "👑 Premium",
+            "currency": "💱 Currency",
+
+            "premium_text":
+                "👑 TaskForge Premium\n\n"
+                "Unlock:\n\n"
+                "• AI Insights\n"
+                "• Charts\n"
+                "• PDF Reports\n"
+                "• Goals\n"
+                "• Subscriptions\n"
+                "• Advanced Analytics\n\n"
+                "🎁 7-day free trial\n"
+                "💰 4.99$/month\n\n"
+                "🚀 Payments coming soon",
+
+                "goals_menu":
+                    "🎯 Goals menu:\n\n"
+                    "/goal 10000 MacBook\n"
+                    "/goal_status\n"
+                    "/delete_goal",
+
 
 
     },
@@ -151,12 +168,15 @@ translations = {
 
         "total": "💰 Загалом",
 
+        "subscriptions_button": "📺 Підписки",
+        "tasks_button": "✅ Задачі",
+        "budget_button": "💰 Бюджет",
+
         "monthly_expenses": "📅 Витрати за місяць:",
         "budget_not_set": "❌ Бюджет не встановлено",
         "subscriptions": "📺 Твої підписки:",
         "statistics": "📊 Статистика:",
         "ai_analysis": "🤖 AI Аналіз:",
-        "total": "💰 Загалом",
         "use_format": "❌ Формат:",
         "goal_status": "🎯 Статус цілі",
         "goal_not_set": "❌ Ціль не встановлена",
@@ -168,7 +188,6 @@ translations = {
             "goals_section": "🎯 Цілі:",
             "subscriptions_section": "📺 Підписки:",
             "currency_section": "🌍 Валюта:",
-            "currency": "💱 Валюта",
 
             "goal_created": "🎯 Ціль створена!",
             "goal_format": "❌ Формат:\n/goal 5000 MacBook",
@@ -178,25 +197,15 @@ translations = {
             "Trial закінчився.\n"
             "Підписка: 5$/month"
 ),
-
-            "no_expenses": "Немає витрат 😄",
-
-            "ai_analysis": "📊 AI Аналіз",
             "top_expense": "🔥 Найбільше витрат:",
-            "expense_percent": "займає",
-            "reduce_expenses": "💡 Спробуй зменшити витрати на",
             "good_balance": "✅ Баланс витрат виглядає добре",
 
-            "no_expenses": "❌ У тебе немає витрат",
+
 
             "warnings_title": "🤖 AI Аналіз витрат",
             "big_expenses": "⚠️ У тебе дуже великі витрати на",
             "too_much_spending": "🔥 Ти витрачаєш дуже багато грошей",
             "good_control": "✅ У тебе хороший контроль витрат",
-
-           "no_expenses": "📭 У тебе ще немає витрат",
-
-           "total": "💰 Загалом",
 
             "recommendations_title": "🤖 AI Recommendations",
             "biggest_expense": "🔥 Найбільше витрат йде на:",
@@ -207,7 +216,6 @@ translations = {
             "financial_report_caption": "📄 Твій фінансовий звіт",
 
             "month_stats": "📅 Витрати за місяць:",
-            "total": "Загалом",
 
             "trial_activated": "🎁 Тобі активовано 7-денний Premium Trial!",
 
@@ -223,14 +231,11 @@ translations = {
             "amount_must_be_number": "❌ Сума має бути числом",
             "add_format": "❌ Формат:\n/add uber 25",
 
-            "no_expenses": "📚 Немає витрат",
             "your_expenses": "🦋 Твої витрати:",
 
             "total_expenses": "Загальні витрати",
             "budget_set": "Бюджет встановлено",
             "budget_format": "❌ Формат:\n/budget 2000",
-
-            "budget_not_set": "❌ Бюджет не встановлено",
             "budget": "Бюджет",
             "spent": "Витрачено",
             "left": "Залишилось",
@@ -260,6 +265,26 @@ translations = {
             "task_completed": "✅ Задачу виконано",
             "language": "🌍 Мова",
             "premium": "👑 Преміум",
+            "currency": "💱 Валюта",
+
+            "premium_text":
+                "👑 TaskForge Premium\n\n"
+                "Відкриває:\n\n"
+                "• AI Аналіз\n"
+                "• Графіки\n"
+                "• PDF Звіти\n"
+                "• Цілі\n"
+                "• Підписки\n"
+                "• Розширену аналітику\n\n"
+                "🎁 7 днів безкоштовно\n"
+                "💰 4.99$/місяць\n\n"
+                "🚀 Оплата скоро буде доступна",
+
+                "goals_menu":
+                    "🎯 Меню цілей:\n\n"
+                    "/goal 10000 MacBook\n"
+                    "/goal_status\n"
+                    "/delete_goal",
 
 
          }

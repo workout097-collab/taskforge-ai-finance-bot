@@ -1,43 +1,79 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-
-from texts import TEXTS
+from translations import translations
 
 def get_main_keyboard(language="en"):
 
-     texts = TEXTS[language]
+    if language == "ua":
 
-     keyboard = ReplyKeyboardMarkup(
+        keyboard = ReplyKeyboardMarkup(
 
             keyboard=[
 
                 [
-                    KeyboardButton(text=texts["add_expense"]),
-                    KeyboardButton(text=texts["analytics"])
+                    KeyboardButton(text="➕ Додати витрату"),
+                    KeyboardButton(text="📊 Аналітика")
                 ],
 
                 [
-                    KeyboardButton(text=texts["goals"]),
-                    KeyboardButton(text=texts["tasks"])
+                    KeyboardButton(text="🎯 Цілі"),
+                    KeyboardButton(text="✅ Задачі")
                 ],
 
                 [
-                    KeyboardButton(text=texts["budget"]),
-                    KeyboardButton(text=texts["report"])
+                    KeyboardButton(text="💰 Бюджет"),
+                    KeyboardButton(text="📄 Звіт")
                 ],
 
                 [
-                    KeyboardButton(text=texts["subscriptions"]),
-                    KeyboardButton(text=texts["currency"])
+                    KeyboardButton(text="💳 Підписки"),
+                    KeyboardButton(text="💱 Валюта")
                 ],
-                [
-                    KeyboardButton(text=texts["language"]),
-                    KeyboardButton(text=texts["premium"])
 
+                [
+                    KeyboardButton(text="🌍 Мова"),
+                    KeyboardButton(text="👑 Преміум")
                 ]
+
             ],
 
             resize_keyboard=True
         )
 
-     return keyboard
+    else:
+
+        keyboard = ReplyKeyboardMarkup(
+
+            keyboard=[
+
+                [
+                    KeyboardButton(text="➕ Add Expense"),
+                    KeyboardButton(text="📊 Analytics")
+                ],
+
+                [
+                    KeyboardButton(text="🎯 Goals"),
+                    KeyboardButton(text="✅ Tasks")
+                ],
+
+                [
+                    KeyboardButton(text="💰 Budget"),
+                    KeyboardButton(text="📄 Report")
+                ],
+
+                [
+                    KeyboardButton(text="💳 Subscriptions"),
+                    KeyboardButton(text="💱 Currency")
+                ],
+
+                [
+                    KeyboardButton(text="🌍 Language"),
+                    KeyboardButton(text="👑 Premium")
+                ]
+
+            ],
+
+            resize_keyboard=True
+        )
+
+    return keyboard
 

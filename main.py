@@ -62,23 +62,18 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 
-@dp.message(F.text == "👑 Premium")
+@dp.message(F.text.in_(["👑 Premium", "👑 Преміум"]))
 async def premium_button(message: Message):
 
-    await message.answer(
-        "👑 TaskForge Premium\n\n"
-        "Unlock:\n\n"
-        "• AI Insights\n"
-        "• Charts\n"
-        "• PDF Reports\n"
-        "• Goals\n"
-        "• Subscriptions\n"
-        "• Advanced Analytics\n\n"
-        "🎁 7-day free trial\n"
-        "💰 4.99$/month\n\n"
-        "🚀 Payments coming soon"
-    )
+    user_id = message.from_user.id
 
+    language = get_language_db(user_id)
+
+    t = translations[language]
+
+    await message.answer(
+        t["premium_text"]
+    )
 @dp.message(Command("english"))
 async def english_lang(message: Message):
 
@@ -178,7 +173,7 @@ async def premium_users_command(message: Message):
         f"💎 Premium users: {total}"
     )
 
-@dp.message(F.text == "✅ Tasks")
+@dp.message(F.text.in_(["✅ Tasks", "✅ Задачі"]))
 async def tasks_button(message: Message):
 
     user_id = message.from_user.id
@@ -208,7 +203,7 @@ async def add_task(message: Message):
         f"{t['task_added']}\n\n{text}"
     )
 
-@dp.message(F.text == "➕ Add Expense")
+@dp.message(F.text.in_(["➕ Add Expense", "➕ Додати витрату"]))
 async def add_expense_help(message: Message):
     user_id = message.from_user.id
     language = get_language_db(user_id)
@@ -363,7 +358,7 @@ async def subscribe_command(message: Message):
     )
 
 
-@dp.message(Command("subscriptions"))
+@dp.message(F.text.in_(["💳 Subscriptions", "💳 Підписки"]))
 async def show_subscriptions(message: Message):
     user_id = message.from_user.id
 
@@ -1137,7 +1132,7 @@ async def add_expense(message: Message):
         )
 
 
-@dp.message(F.text == "📊 Analytics")
+@dp.message(F.text.in_(["📊 Analytics", "📊 Аналітика"]))
 async def analytics_button(message: Message):
     user_id = message.from_user.id
 
@@ -1148,15 +1143,17 @@ async def analytics_button(message: Message):
         "/stats\n/chart\n/insights\n/warnings\n/month"
     )
 
-@dp.message(F.text == "🎯 Goals")
+@dp.message(F.text.in_(["🎯 Goals", "🎯 Цілі"]))
 async def goals_button(message: Message):
+
     user_id = message.from_user.id
 
     language = get_language_db(user_id)
+
     t = translations[language]
 
     await message.answer(
-        "/goal 10000 MacBook\n/goal_status"
+        t["goals_menu"]
     )
 
 @dp.message(F.text == "💳 Subscriptions")
@@ -1166,13 +1163,13 @@ async def subscriptions_button(message: Message):
         "/subscribe netflix 40\n/subscriptions"
     )
 
-@dp.message(F.text == "💰 Budget")
+@dp.message(F.text.in_(["💰 Budget", "💰 Бюджет"]))
 async def budget_button(message: Message):
 
     await message.answer(
         "/budget 5000\n/budget_status"
     )
-@dp.message(F.text == "💱 Currency")
+@dp.message(F.text.in_(["💱 Currency", "💱 Валюта"]))
 async def currency_button(message: Message):
 
     await message.answer(
@@ -1292,7 +1289,7 @@ async def budget_status(message: Message):
 
             await message.answer(text)
 
-@dp.message(F.text == "🌍 Language")
+@dp.message(F.text.in_(["🌍 Language", "🌍 Мова"]))
 async def language_button(message: Message):
 
     await message.answer(
