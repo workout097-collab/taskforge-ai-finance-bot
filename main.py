@@ -38,6 +38,7 @@ from database import init_db, add_expense_db, get_expenses_db
 from database import (
     init_db,
     add_expense_db,
+    create_premium_table,
     get_expenses_db,
     delete_expense_db,
     set_budget_db,
@@ -54,7 +55,6 @@ from database import add_task_db, get_tasks_db, complete_task_db
 
 load_dotenv(dotenv_path=".env")
 init_db()
-create_premium_table()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
