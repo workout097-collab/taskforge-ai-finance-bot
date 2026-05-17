@@ -357,28 +357,22 @@ def create_premium_table():
     conn.commit()
     conn.close()
 
-
-init_db()
-create_premium_table()
+    init_db()
+    create_premium_table()
 
 def add_premium_user(user_id, premium, trial_end):
 
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        INSERT OR REPLACE INTO premium_users
-        (user_id, premium, trial_end)
-        VALUES (?, ?, ?)
-        """,
-        (user_id, premium, trial_end)
-    )
+    cursor.execute("""
+    INSERT OR REPLACE INTO premium_users
+    (user_id, premium, trial_end)
+    VALUES (?, ?, ?)
+    """, (user_id, premium, trial_end))
 
     conn.commit()
     conn.close()
-
-
 
 def get_total_expenses_count():
 
