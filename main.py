@@ -1053,7 +1053,7 @@ async def start_handler(message: Message):
 
     premium_user = get_premium_user(user_id)
 
-    if not premium_user:
+    if not premium_user is None:
         trial_end = (
                 datetime.now() + timedelta(days=7)
         ).strftime("%Y-%m-%d")
