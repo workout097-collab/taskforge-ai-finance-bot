@@ -1164,12 +1164,14 @@ async def budget_button(message: Message):
     await message.answer(
         "/budget 5000\n/budget_status"
     )
-
-@dp.message(F.text == "⚙️ Settings")
-async def settings_button(message: Message):
+@dp.message(F.text == "💱 Currency")
+async def currency_button(message: Message):
 
     await message.answer(
-        "/currency USD"
+        "Choose currency:\n\n"
+        "/currency USD\n"
+        "/currency UAH\n"
+        "/currency PLN"
     )
 
 @dp.message(Command("expenses"))

@@ -27,7 +27,7 @@ def get_main_keyboard(language="en"):
 
                 [
                     KeyboardButton(text=texts["subscriptions"]),
-                    KeyboardButton(text=texts["settings"])
+                    KeyboardButton(text=texts["currency"])
                 ],
                 [
                     KeyboardButton(text="🌍 Language")
