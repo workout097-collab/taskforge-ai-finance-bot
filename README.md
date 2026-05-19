@@ -43,4 +43,4 @@ AI-powered Telegram finance assistant.
 
 ## ⚡ Author
 
-Built with passion 🚀
+Built with passion 
