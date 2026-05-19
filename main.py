@@ -205,6 +205,27 @@ async def handle_voice(message: Message):
         await processing_msg.edit_text(f"❌ Помилка: {str(e)}")
 
 
+@dp.message(Command("reset_tasks"))
+async def reset_tasks(message: Message):
+    # Тільки для адміна
+    if message.from_user.id != admin_id:
+        return
+
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    # Видалити всі задачі
+    cursor.execute("DELETE FROM tasks")
+
+    # Скинути лічильник AUTOINCREMENT
+    cursor.execute("DELETE FROM sqlite_sequence WHERE name='tasks'")
+
+    conn.commit()
+    conn.close()
+
+    await message.answer("✅ Всі задачі видалені. Лічильник скинуто до 1.")
+
+
 # ... решта коду (premium_button, add, start і т.д.)
 
 
@@ -412,8 +433,8 @@ async def ukrainian_lang(message: Message):
 @dp.message(Command("admin"))
 async def admin_stats(message: Message):
 
-    if message.from_user.id != 1128720977:
-        return
+    #if message.from_user.id != 1128720977:
+      #  return
 
     users = get_total_users()
     expenses = get_total_expenses_count()
