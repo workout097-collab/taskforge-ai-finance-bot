@@ -170,9 +170,24 @@ async def handle_voice(message: Message):
         amount = None
         category = "other"
 
+        # Словник слів-чисел (українською)
+        number_words = {
+            "один": 1, "два": 2, "три": 3, "чотири": 4, "п'ять": 5,
+            "шість": 6, "сім": 7, "вісім": 8, "дев'ять": 9, "десять": 10,
+            "двадцять": 20, "тридцять": 30, "сорок": 40, "п'ятдесят": 50,
+            "шістдесят": 60, "сімдесят": 70, "вісімдесят": 80, "дев'яносто": 90,
+            "сто": 100, "двісті": 200, "триста": 300, "п'ятсот": 500,
+            "тисяча": 1000
+        }
+
+        # Шукаємо цифру або слово-число
+        amount = None
         for word in words:
             if word.isdigit():
                 amount = int(word)
+                break
+            if word in number_words:
+                amount = number_words[word]
                 break
 
         if not amount:
@@ -863,59 +878,45 @@ async def currency_handler(message: Message):
 
 @dp.message(Command("insights"))
 async def insights_handler(message: Message):
-
     user_id = message.from_user.id
-
     language = get_language_db(user_id)
     t = translations[language]
 
-    await message.answer(
-        t["premium_required"]
-    )
+    if not is_premium(user_id):
+        await message.answer(t["premium_required"])
+        return
 
     expenses = get_expenses_db(user_id)
 
     if not expenses:
-        await message.answer(
-            t["no_expenses"]
-        )
+        await message.answer(t["no_expenses"])
+        return
 
     stats = {}
-
     total = 0
 
     for expense in expenses:
-
         category = expense[2]
         amount = expense[3]
-
         total += amount
-
-        if category in stats:
-           stats[category] += amount
-        else:
-          stats[category] = amount
+        stats[category] = stats.get(category, 0) + amount
 
     top_category = max(stats, key=stats.get)
-
     top_amount = stats[top_category]
-
     percent = round((top_amount / total) * 100)
 
+    currency = get_currency_db(user_id)  # ← Отримуємо валюту користувача
+
     text = (
-    f"{t['ai_analysis']}\n\n"
-    f"{t['top_expense']} {top_category} — {top_amount}$\n\n"
-    f"⚠️ {top_category} {t['expense_percent']} {percent}%\n\n"
+        f"{t['ai_analysis']}\n\n"
+        f"{t['top_expense']} {top_category} — {top_amount} {currency}\n\n"
+        f"⚠️ {top_category} {t['expense_percent']} {percent}%\n\n"
     )
 
     if percent > 50:
-            text += (
-                f"{t['reduce_expenses']} "
-                f"{top_category}"
-            )
-
+        text += f"{t['reduce_expenses']} {top_category}"
     else:
-         text += t["good_balance"]
+        text += t["good_balance"]
 
     await message.answer(text)
 
@@ -1102,9 +1103,7 @@ async def chart_handler(message: Message):
 
 @dp.message(Command("warnings"))
 async def warnings_handler(message: Message):
-
     user_id = message.from_user.id
-
     language = get_language_db(user_id)
     t = translations[language]
 
@@ -1115,40 +1114,26 @@ async def warnings_handler(message: Message):
         return
 
     stats = {}
-
     total = 0
 
     for expense in expenses:
-
         category = expense[2]
         amount = expense[3]
-
         total += amount
+        stats[category] = stats.get(category, 0) + amount
 
-        if category in stats:
-            stats[category] += amount
-        else:
-            stats[category] = amount
+    currency = get_currency_db(user_id)  # ← Отримуємо валюту
 
     text = f"{t['warnings_title']}\n\n"
 
     for category, amount in stats.items():
-
         percent = (amount / total) * 100
-
         if percent >= 50:
-
-            text += (
-                f"{t['big_expenses']} "
-                f"{category} ({percent:.1f}%)\n"
-            )
+            text += f"{t['big_expenses']} {category} ({percent:.1f}%)\n"
 
     if total > 1000:
-
-        text += f"\n{t['too_much_spending']}"
-
+        text += f"\n{t['too_much_spending']} ({total} {currency})"
     elif total < 200:
-
         text += f"\n{t['good_control']}"
 
     await message.answer(text)
