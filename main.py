@@ -1135,9 +1135,7 @@ async def warnings_handler(message: Message):
 
 @dp.message(Command("stats"))
 async def show_stats(message: Message):
-
     user_id = message.from_user.id
-
     language = get_language_db(user_id)
     t = translations[language]
 
@@ -1147,42 +1145,45 @@ async def show_stats(message: Message):
         await message.answer(t["no_expenses"])
         return
 
+    # Мапа для нормалізації категорій
+    category_normalize = {
+        "food": "Їжа",
+        "transport": "Транспорт",
+        "entertainment": "Розваги",
+        "shopping": "Покупки",
+        "health": "Здоров'я",
+        "work": "Робота",
+        "other": "Інше",
+        "таксі": "Транспорт",
+        "бензин": "Транспорт",
+        "кава": "Їжа",
+        "їжа": "Їжа",
+        "кіно": "Розваги",
+        "ліки": "Здоров'я",
+    }
+
     stats = {}
-
     for expense in expenses:
-
-        category = expense[2]
+        category = expense[2].lower()
         amount = expense[3]
 
-        if category in stats:
-            stats[category] += amount
-        else:
-            stats[category] = amount
+        # Нормалізуємо категорію
+        normalized = category_normalize.get(category, category.capitalize())
+        stats[normalized] = stats.get(normalized, 0) + amount
+
+    # Сортуємо за сумою (від більшої до меншої)
+    sorted_stats = sorted(stats.items(), key=lambda x: x[1], reverse=True)
 
     currency = get_currency_db(user_id)
+    total = sum(stats.values())
 
     text = f"{t['statistics']}\n\n"
+    for category, amount in sorted_stats:
+        text += f"{category} — {amount} {currency}\n"
 
-    total = 0
-
-    for category, amount in stats.items():
-
-        total += amount
-
-        print(category)
-        print(type(category))
-
-        translated_category = t["categories"].get(category, category)
-
-        text += f"{translated_category} — {amount}$\n"
-
-    text += (
-        f"\n{t['total']}: "
-        f"{total} {currency}"
-    )
+    text += f"\n{t['total']}: {total} {currency}"
 
     await message.answer(text)
-
 
 @dp.message(Command("month"))
 async def month_stats(message: Message):
