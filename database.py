@@ -75,7 +75,25 @@ def init_db():
     )
     """)
 
+    cursor.execute("""
+       CREATE TABLE IF NOT EXISTS ai_usage (
+           id INTEGER PRIMARY KEY AUTOINCREMENT,
+           user_id INTEGER,
+           date TEXT
+       )
+       """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS recurring_expenses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            name TEXT,
+            amount INTEGER,
+            category TEXT,
+            frequency TEXT,
+            next_date TEXT
+        )
+        """)
 
     conn.commit()
     conn.close()
@@ -594,6 +612,7 @@ def clear_expenses_db(user_id):
         "DELETE FROM expenses WHERE user_id = ?",
         (user_id,)
     )
+
 
     conn.commit()
     conn.close()

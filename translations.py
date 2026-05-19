@@ -123,24 +123,23 @@ translations = {
             "premium": "👑 Premium",
             "currency": "💱 Currency",
 
-            "premium_text":
-                "👑 TaskForge Premium\n\n"
-                "Unlock:\n\n"
-                "• AI Insights\n"
-                "• Charts\n"
-                "• PDF Reports\n"
-                "• Goals\n"
-                "• Subscriptions\n"
-                "• Advanced Analytics\n\n"
-                "🎁 7-day free trial\n"
-                "💰 4.99$/month\n\n"
-                "🚀 Payments coming soon",
-
                 "goals_menu":
                     "🎯 Goals menu:\n\n"
                     "/goal 10000 MacBook\n"
                     "/goal_status\n"
                     "/delete_goal",
+
+                        "premium_text":
+                            "💎 Premium — $5/month\n\n"
+                            "What you get:\n\n"
+                            "✅ Unlimited expenses (free: 50/month)\n"
+                            "✅ Unlimited subscriptions (free: 3)\n"
+                            "✅ Unlimited goals (free: 1)\n"
+                            "✅ Unlimited AI insights\n"
+                            "✅ PDF & CSV export\n"
+                            "✅ Priority support\n\n"
+                            "🎁 7-day free trial\n"
+                        " 🔥/subscribe_premium - coming soon",
 
 
 
@@ -268,17 +267,16 @@ translations = {
             "currency": "💱 Валюта",
 
             "premium_text":
-                "👑 TaskForge Premium\n\n"
-                "Відкриває:\n\n"
-                "• AI Аналіз\n"
-                "• Графіки\n"
-                "• PDF Звіти\n"
-                "• Цілі\n"
-                "• Підписки\n"
-                "• Розширену аналітику\n\n"
+                "💎 Premium — $5/місяць\n\n"
+                "Що отримуєш:\n\n"
+                "✅ Безліміт витрат (free: 50/міс)\n"
+                "✅ Безліміт підписок (free: 3)\n"
+                "✅ Безліміт цілей (free: 1)\n"
+                "✅ AI-аналітика без обмежень\n"
+                "✅ Експорт у PDF та CSV\n"
+                "✅ Пріоритетна підтримка\n\n"
                 "🎁 7 днів безкоштовно\n"
-                "💰 4.99$/місяць\n\n"
-                "🚀 Оплата скоро буде доступна",
+                " 🔥/subscribe_premium - скоро буде доступно",
 
                 "goals_menu":
                     "🎯 Меню цілей:\n\n"

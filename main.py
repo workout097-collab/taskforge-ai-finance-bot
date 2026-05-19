@@ -1,5 +1,12 @@
 from datetime import datetime, timedelta
+from aiogram.types import Message
+import io
+import httpx
+from premium_limits import can_add_expense
+from database import is_premium
 from main_keyboard import get_main_keyboard
+from premium_limits import can_add_expense, can_use_ai_insight
+from ai_insights import get_ai_advice
 import sqlite3
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
@@ -7,8 +14,9 @@ from aiogram.filters import Command
 import matplotlib.pyplot as plt
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from reportlab.pdfgen import canvas
-from aiogram.types import FSInputFile
 from translations import translations
+import csv
+from aiogram.types import FSInputFile
 from database import (
     get_total_users,
     get_total_expenses_count,
@@ -64,18 +72,316 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 
-@dp.message(F.text.in_(["👑 Premium", "👑 Преміум"]))
-async def premium_button(message: Message):
+from aiogram.types import LabeledPrice, PreCheckoutQuery, Message
+from aiogram import F
 
+# ... всі імпорти ...
+
+# ========== ОПЛАТА ==========
+PREMIUM_STARS = 500
+
+
+@dp.message(Command("buy_premium"))
+async def buy_premium(message: Message):
     user_id = message.from_user.id
+    await bot.send_invoice(
+        chat_id=user_id,
+        title="TaskForge AI Premium",
+        description="Безліміт витрат, AI-поради, голосові витрати, CSV/PDF звіти",
+        payload="premium_monthly",
+        provider_token="",
+        currency="XTR",
+        prices=[LabeledPrice(label="Premium місяць", amount=PREMIUM_STARS)],
+        start_parameter="premium_subscription"
+    )
 
+
+@dp.pre_checkout_query()
+async def pre_checkout(query: PreCheckoutQuery):
+    await bot.answer_pre_checkout_query(query.id, ok=True)
+
+
+@dp.message(F.successful_payment)
+async def successful_payment(message: Message):
+    user_id = message.from_user.id
+    trial_end = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+    add_premium_user(user_id, 1, trial_end)
+    await message.answer("✅ Дякуємо за покупку! Premium активовано на 30 днів.")
+
+
+# ========== ГОЛОС (тільки один обробник) ==========
+@dp.message(F.voice)
+async def handle_voice(message: Message):
+    user_id = message.from_user.id
     language = get_language_db(user_id)
-
     t = translations[language]
 
+    if not is_premium(user_id):
+        await message.answer("🔒 Голосові витрати — Premium фіча. Купи /premium за $5/міс")
+        return
+
+    processing_msg = await message.answer("🎙️ Обробляю голосове...")
+
+    try:
+        file = await bot.get_file(message.voice.file_id)
+        voice_bytes = await bot.download_file(file.file_path)
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(
+                "https://api.openai.com/v1/audio/transcriptions",
+                headers={"Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}"},
+                files={"file": ("voice.ogg", voice_bytes, "audio/ogg")},
+                data={"model": "whisper-1", "language": "uk"}
+            )
+            result = response.json()
+            text = result.get("text", "")
+
+        if not text:
+            await processing_msg.edit_text("❌ Не вдалося розпізнати. Спробуй ще раз.")
+            return
+
+        # Перевірка на ціль
+        if "хочу" in text.lower() or "ціль" in text.lower() or "накопичити" in text.lower():
+            parts = text.lower().split()
+            goal_amount = None
+            goal_name = []
+            for word in parts:
+                if word.isdigit():
+                    goal_amount = int(word)
+                elif word not in ["хочу", "ціль", "накопичити"]:
+                    goal_name.append(word)
+            if goal_amount:
+                goal_name_str = " ".join(goal_name)
+                set_goal_db(user_id, goal_name_str, goal_amount)
+                await processing_msg.edit_text(
+                    f"🎯 Ціль додано: {goal_name_str} — {goal_amount} {get_currency_db(user_id)}")
+                return
+
+        # Перевірка на задачу
+        if "задача" in text.lower() or "зробити" in text.lower() or "треба" in text.lower():
+            task_text = text.replace("задача", "").replace("зробити", "").replace("треба", "").strip()
+            if task_text:
+                add_task_db(user_id, task_text)
+                await processing_msg.edit_text(f"✅ Задачу додано: {task_text}")
+                return
+
+        # Додавання витрати (основний сценарій)
+        words = text.lower().split()
+        amount = None
+        category = "other"
+
+        for word in words:
+            if word.isdigit():
+                amount = int(word)
+                break
+
+        if not amount:
+            number_words = {"п'ятдесят": 50, "сто": 100, "двісті": 200, "триста": 300, "п'ятсот": 500}
+            for word, val in number_words.items():
+                if word in text.lower():
+                    amount = val
+                    break
+
+        category_map = {
+            "кава": "food", "їжа": "food", "обід": "food",
+            "таксі": "transport", "транспорт": "transport", "бензин": "transport",
+            "кіно": "entertainment", "фільм": "entertainment",
+            "ліки": "health", "лікар": "health"
+        }
+
+        for word, cat in category_map.items():
+            if word in text.lower():
+                category = cat
+                break
+
+        if amount:
+            add_expense_db(user_id, category, amount)
+            currency = get_currency_db(user_id)
+            await processing_msg.edit_text(f"✅ Додано: {category} — {amount} {currency}\n🎤 Розпізнано: \"{text}\"")
+        else:
+            await processing_msg.edit_text(f"❌ Не знайшов суму. Скажи, наприклад: 'кава 50'\nРозпізнано: \"{text}\"")
+
+    except Exception as e:
+        await processing_msg.edit_text(f"❌ Помилка: {str(e)}")
+
+
+# ... решта коду (premium_button, add, start і т.д.)
+
+
+def add_recurring_expense_db(user_id, name, amount, category, frequency):
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    from datetime import datetime, timedelta
+    if frequency == "daily":
+        next_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    elif frequency == "weekly":
+        next_date = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+    else:  # monthly
+        next_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+
+    cursor.execute("""
+        INSERT INTO recurring_expenses (user_id, name, amount, category, frequency, next_date)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (user_id, name, amount, category, frequency, next_date))
+
+    conn.commit()
+    conn.close()
+
+
+def get_recurring_expenses_db(user_id):
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM recurring_expenses WHERE user_id = ?", (user_id,))
+    result = cursor.fetchall()
+    conn.close()
+    return result
+
+
+def check_recurring_expenses():
+    """Автоматично додає витрати, які мають настати сьогодні"""
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    cursor.execute("SELECT * FROM recurring_expenses WHERE next_date <= ?", (today,))
+    expenses = cursor.fetchall()
+
+    for exp in expenses:
+        # Додаємо витрату
+        add_expense_db(exp[1], exp[4], exp[3])
+
+        # Оновлюємо next_date
+        from datetime import datetime, timedelta
+        if exp[5] == "daily":
+            new_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+        elif exp[5] == "weekly":
+            new_date = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+        else:
+            new_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+
+        cursor.execute("UPDATE recurring_expenses SET next_date = ? WHERE id = ?", (new_date, exp[0]))
+
+    conn.commit()
+    conn.close()
+
+
+@dp.message(Command("recurring"))
+async def add_recurring(message: Message):
+    user_id = message.from_user.id
+
+    if not is_premium(user_id):
+        await message.answer("🔒 Регулярні платежі — Premium фіча. /premium")
+        return
+
+    # /recurring Netflix 40 monthly
+    parts = message.text.split()
+    if len(parts) < 4:
+        await message.answer("❌ Формат: /recurring назва сума частота (daily/weekly/monthly)")
+        return
+
+    name = parts[1]
+    amount = int(parts[2])
+    frequency = parts[3]
+
+    if frequency not in ["daily", "weekly", "monthly"]:
+        await message.answer("❌ Частота: daily, weekly або monthly")
+        return
+
+    category = detect_category(name)
+    add_recurring_expense_db(user_id, name, amount, category, frequency)
+
+    await message.answer(f"✅ Додано регулярний платіж: {name} — {amount} {get_currency_db(user_id)} ({frequency})")
+
+
+@dp.message(Command("recurring_list"))
+async def list_recurring(message: Message):
+    user_id = message.from_user.id
+    recurring = get_recurring_expenses_db(user_id)
+
+    if not recurring:
+        await message.answer("📭 Немає регулярних платежів")
+        return
+
+    text = "🔄 Регулярні платежі:\n\n"
+    for r in recurring:
+        text += f"• {r[2]} — {r[3]} {get_currency_db(user_id)} ({r[5]}) — наступний: {r[6]}\n"
+
+    await message.answer(text)
+
+@dp.message(F.text.in_(["👑 Premium", "👑 Преміум"]))
+async def premium_button(message: Message):
+    user_id = message.from_user.id
+    language = get_language_db(user_id)
+    t = translations[language]
+
+    # Перевіряємо, чи вже Premium
+    #if is_premium(user_id):
+        #await message.answer("✅ У вас вже активний Premium!\n\nДякуємо за підтримку 💙")
+        #return
+
+    # Показуємо опис і пропонуємо купити
     await message.answer(
-        t["premium_text"]
+        t["premium_text"] + "\n\n💰 Натисніть /buy_premium для оформлення",
+        parse_mode="Markdown"
     )
+
+@dp.message(Command("advice"))
+async def advice_command(message: Message):
+    user_id = message.from_user.id
+    language = get_language_db(user_id)
+
+    # Перевірка ліміту
+    can_use, msg = can_use_ai_insight(user_id)
+    if not can_use:
+        await message.answer(msg)
+        return
+
+    await message.answer("🤔 Аналізую витрати...")
+    advice = await get_ai_advice(user_id, language)
+    await message.answer(advice)
+
+
+# Додай у send_daily_reminder або окремий scheduler
+async def check_subscriptions():
+    conn = sqlite3.connect("expenses.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT user_id FROM subscriptions")
+    users = cursor.fetchall()
+
+    for (user_id,) in users:
+        subscriptions = get_subscriptions_db(user_id)
+        total = sum(s[3] for s in subscriptions)
+
+        await bot.send_message(
+            user_id,
+            f"📅 Нагадування: у тебе {len(subscriptions)} підписок на загальну суму {total} {get_currency_db(user_id)}/міс. \nСписок: /subscriptions"
+        )
+    conn.close()
+
+
+# У main() додати:
+scheduler.add_job(check_subscriptions, "cron", day_of_week="mon", hour=10, minute=0)
+
+# Додай нові кнопки в клавіатуру
+TEMPLATES = {
+    "🏠 Дім": [("Продукти", 200), ("Комуналка", 150)],
+    "🚗 Транспорт": [("Таксі", 50), ("Бензин", 100)],
+    "🍕 Їжа": [("Кава", 30), ("Обід", 120)],
+}
+
+
+@dp.message(F.text.in_(["🏠 Дім", "🚗 Транспорт", "🍕 Їжа"]))
+async def apply_template(message: Message):
+    user_id = message.from_user.id
+    template_name = message.text
+    items = TEMPLATES[template_name]
+
+    for category, amount in items:
+        add_expense_db(user_id, category.lower(), amount)
+
+    await message.answer(f"✅ Додано шаблон {template_name}: {len(items)} витрат")
+
 @dp.message(Command("english"))
 async def english_lang(message: Message):
 
@@ -334,30 +640,54 @@ async def delete_task(message: Message):
         await message.answer("🗑 Task deleted")
 
 
+@dp.message(Command("export"))
+async def export_csv(message: Message):
+    user_id = message.from_user.id
+    language = get_language_db(user_id)
+    t = translations[language]
+
+    if not is_premium(user_id):
+        await message.answer("🔒 " + t["premium_required"])
+        return
+
+    expenses = get_expenses_db(user_id)
+    if not expenses:
+        await message.answer(t["no_expenses"])
+        return
+
+    csv_name = f"reports/export_{user_id}.csv"
+    with open(csv_name, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["ID", "Category", "Amount", "Date"])
+        for e in expenses:
+            writer.writerow([e[0], e[2], e[3], e[4]])
+
+    await message.answer_document(
+        document=FSInputFile(csv_name),
+        caption="📊 Your expenses exported to CSV"
+    )
 
 
 @dp.message(Command("subscribe"))
 async def subscribe_command(message: Message):
+    user_id = message.from_user.id  # ← спочатку визнач user_id
 
-
-    user_id = message.from_user.id
+    if not is_premium(user_id):
+        subscriptions = get_subscriptions_db(user_id)
+        if len(subscriptions) >= 3:
+            await message.answer("❌ Ліміт 3 підписки в безкоштовній версії. Купи Premium за $5/міс.")
+            return
 
     language = get_language_db(user_id)
     t = translations[language]
 
     text = message.text.split()
-
     name = text[1]
     amount = int(text[2])
-
     add_subscription_db(user_id, name, amount)
-
     currency = get_currency_db(user_id)
 
-    await message.answer(
-        f"{t['subscription_added']}\n\n"
-        f"{name} — {amount} {currency}/month"
-    )
+    await message.answer(f"{t['subscription_added']}\n\n{name} — {amount} {currency}/month")
 
 
 @dp.message(F.text.in_(["💳 Subscriptions", "💳 Підписки"]))
@@ -509,6 +839,7 @@ async def currency_handler(message: Message):
         f"{t['currency_changed']} {currency}"
     )
 
+
 @dp.message(Command("insights"))
 async def insights_handler(message: Message):
 
@@ -567,10 +898,77 @@ async def insights_handler(message: Message):
 
     await message.answer(text)
 
-@dp.message(F.text.in_(["📄 Report", "📄 Звіт"]))
-async def report_button(message: Message):
 
-    await report_handler(message)
+@dp.message(F.text.in_(["📄 Report", "📄 Звіт"]))
+async def report_handler(message: Message):
+    user_id = message.from_user.id
+    language = get_language_db(user_id)
+    t = translations[language]
+
+    if not is_premium(user_id):
+        await message.answer("🔒 " + t["premium_required"])
+        return
+
+    expenses = get_expenses_db(user_id)
+    current_date = datetime.now().strftime("%Y-%m-%d")
+
+    # Створюємо папку reports, якщо немає
+    os.makedirs("reports", exist_ok=True)
+
+    pdf_name = f"reports/report_{user_id}_{current_date}.pdf"
+    pdf = canvas.Canvas(pdf_name)
+
+    # TITLE
+    pdf.setFont("Helvetica-Bold", 24)
+    pdf.drawString(180, 800, "TaskForge AI")
+    pdf.setFont("Helvetica", 16)
+    pdf.drawString(200, 770, "Finance Report")
+
+    # USER INFO
+    pdf.setFont("Helvetica", 12)
+    pdf.drawString(50, 730, f"User ID: {user_id}")
+    pdf.drawString(50, 710, f"Date: {current_date}")
+
+    # LINE
+    pdf.line(50, 690, 550, 690)
+
+    # EXPENSES TITLE
+    pdf.setFont("Helvetica-Bold", 16)
+    pdf.drawString(50, 660, "Expenses")
+
+    y = 630
+    total = 0
+    pdf.setFont("Helvetica", 12)
+
+    if not expenses:
+        pdf.drawString(50, y, "No expenses yet")
+    else:
+        currency = get_currency_db(user_id)
+        for expense in expenses:
+            category = expense[2]
+            amount = expense[3]
+            total += amount
+            pdf.drawString(70, y, f"• {category} — {amount} {currency}")
+            y -= 25
+            if y < 100:  # Нова сторінка
+                pdf.showPage()
+                y = 800
+
+        # TOTAL
+        pdf.line(50, y, 550, y)
+        y -= 30
+        pdf.setFont("Helvetica-Bold", 16)
+        pdf.drawString(50, y, f"Total: {total} {currency}")
+
+    # FOOTER
+    pdf.setFont("Helvetica-Oblique", 10)
+    pdf.drawString(180, 50, "Generated by TaskForge AI")
+    pdf.save()
+
+    await message.answer_document(
+        document=FSInputFile(pdf_name),
+        caption="📄 Your finance report is ready"
+    )
 
 def detect_category(text):
 
@@ -734,115 +1132,6 @@ async def warnings_handler(message: Message):
 
     await message.answer(text)
 
-@dp.message(Command("report"))
-async def report_handler(message: Message):
-    user_id = message.from_user.id
-
-    language = get_language_db(user_id)
-    t = translations[language]
-
-    expenses = get_expenses_db(user_id)
-
-    current_date = datetime.now().strftime("%Y-%m-%d")
-
-    pdf_name = f"reports/report_{user_id}_{current_date}.pdf"
-
-    pdf = canvas.Canvas(pdf_name)
-
-    # TITLE
-    pdf.setFont("Helvetica-Bold", 24)
-    pdf.drawString(180, 800, "TaskForge AI")
-
-    pdf.setFont("Helvetica", 16)
-    pdf.drawString(200, 770, "Finance Report")
-
-    # USER INFO
-    pdf.setFont("Helvetica", 12)
-
-    pdf.drawString(
-        50,
-        730,
-        f"User ID: {user_id}"
-    )
-
-    pdf.drawString(
-        50,
-        710,
-        f"Date: {current_date}"
-    )
-
-    # LINE
-    pdf.line(50, 690, 550, 690)
-
-    # EXPENSES TITLE
-    pdf.setFont("Helvetica-Bold", 16)
-
-    pdf.drawString(
-        50,
-        660,
-        "Expenses"
-    )
-
-    y = 630
-
-    total = 0
-
-    pdf.setFont("Helvetica", 12)
-
-    if not expenses:
-
-        pdf.drawString(
-            50,
-            y,
-            "No expenses yet"
-        )
-
-    else:
-
-        for expense in expenses:
-
-            category = expense[2]
-            amount = expense[3]
-
-            total += amount
-
-            pdf.drawString(
-                70,
-                y,
-                f"• {category} — ${amount}"
-            )
-
-            y -= 25
-
-        # TOTAL
-        pdf.line(50, y, 550, y)
-
-        y -= 30
-
-        pdf.setFont("Helvetica-Bold", 16)
-
-        pdf.drawString(
-            50,
-            y,
-            f"Total: ${total}"
-        )
-
-    # FOOTER
-    pdf.setFont("Helvetica-Oblique", 10)
-
-    pdf.drawString(
-        180,
-        50,
-        "Generated by TaskForge AI"
-    )
-
-    pdf.save()
-
-    await message.answer_document(
-        document=FSInputFile(pdf_name),
-        caption="📄 Your finance report is ready"
-    )
-
 
 @dp.message(Command("stats"))
 async def show_stats(message: Message):
@@ -894,106 +1183,6 @@ async def show_stats(message: Message):
 
     await message.answer(text)
 
-
-@dp.message(Command("recommend"))
-async def recommend_handler(message: Message):
-
-    user_id = message.from_user.id
-
-    language = get_language_db(user_id)
-    t = translations[language]
-
-    expenses = get_expenses_db(user_id)
-
-    if not expenses:
-        await message.answer(t["no_expenses"])
-        return
-
-    stats = {}
-    total = 0
-
-    for expense in expenses:
-
-        category = expense[2]
-        amount = expense[3]
-
-        total += amount
-
-        if category in stats:
-            stats[category] += amount
-        else:
-            stats[category] = amount
-
-    biggest_category = max(stats, key=stats.get)
-    biggest_amount = stats[biggest_category]
-
-    percent = (biggest_amount / total) * 100
-
-    save_money = biggest_amount * 0.2
-
-    text = (
-        f"{t['recommendations_title']}\n\n"
-        f"{t['biggest_expense']}{biggest_category}\n"
-        f"{t['expense_percent']} {percent:.1f}%\n\n"
-        f"{t['reduce_expenses']} "
-        f"{biggest_category} 20%,\n"
-        f"{t['save_money']} {save_money}$"
-    )
-
-    await message.answer(text)
-
-    await report_handler(message)
-
-    user_id = message.from_user.id
-
-    expenses = get_expenses_db(user_id)
-
-    if not expenses:
-        await message.answer(t["no_expenses"])
-        return
-
-    pdf_name = f"report_{user_id}.pdf"
-
-    pdf = canvas.Canvas(pdf_name)
-
-    pdf.setFont("Helvetica-Bold", 18)
-    pdf.drawString(200, 800, "Finance Report")
-
-    pdf.setFont("Helvetica", 12)
-
-    y = 760
-
-    total = 0
-
-    for expense in expenses:
-
-        category = expense[2]
-        amount = expense[3]
-
-        total += amount
-
-        pdf.drawString(
-            100,
-            y,
-            f"{category} - {amount}$"
-        )
-
-        y -= 25
-
-    pdf.setFont("Helvetica-Bold", 14)
-
-    pdf.drawString(
-        100,
-        y - 20,
-        f"Total: {total}$"
-    )
-
-    pdf.save()
-
-    await message.answer_document(
-        document=FSInputFile(pdf_name),
-        caption=t["financial_report_caption"]
-    )
 
 @dp.message(Command("month"))
 async def month_stats(message: Message):
@@ -1052,17 +1241,9 @@ async def start_handler(message: Message):
     save_user(user_id, username, first_name)
 
     premium_user = get_premium_user(user_id)
-
-    if not premium_user is None:
-        trial_end = (
-                datetime.now() + timedelta(days=7)
-        ).strftime("%Y-%m-%d")
-
-        add_premium_user(
-            user_id,
-            1,
-            trial_end
-        )
+    if premium_user is None:  # Якщо немає запису — даємо триал
+        trial_end = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+        add_premium_user(user_id, 1, trial_end)
 
 
     await message.answer(
@@ -1079,59 +1260,41 @@ async def start_handler(message: Message):
 
     )
 
-
 @dp.message(Command("add"))
 async def add_expense(message: Message):
-
     try:
-
         user_id = message.from_user.id
-
         language = get_language_db(user_id)
         t = translations[language]
+
+        # === ПЕРЕВІРКА ЛІМІТУ ===
+        current_month = datetime.now().strftime("%Y-%m")
+        can_add, msg = can_add_expense(user_id, current_month)
+        if not can_add:
+            await message.answer(msg)
+            return
+        # === КІНЕЦЬ ПЕРЕВІРКИ ===
 
         text = message.text.split()
-
         if len(text) == 2:
-
             category = "other"
             amount = int(text[1])
-
         else:
-
             category = detect_category(text[1])
-
             amount = int(text[2])
 
-        add_expense_db(
-            user_id,
-            category,
-            amount
-        )
-
+        add_expense_db(user_id, category, amount)
         currency = get_currency_db(user_id)
-
-        language = get_language_db(user_id)
-
-        t = translations[language]
 
         await message.answer(
             f"{t['added']}\n\n"
             f"{t['category']}: {category}\n"
             f"{t['amount']}: {amount} {currency}"
         )
-
     except ValueError:
-
-        await message.answer(
-            t["amount_must_be_number"]
-        )
-
+        await message.answer(t["amount_must_be_number"])
     except:
-
-        await message.answer(
-            t["add_format"]
-        )
+        await message.answer(t["add_format"])
 
 
 @dp.message(F.text.in_(["📊 Analytics", "📊 Аналітика"]))
