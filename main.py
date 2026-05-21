@@ -64,11 +64,20 @@ from aiogram.types import FSInputFile, InlineKeyboardMarkup, InlineKeyboardButto
 
 
 load_dotenv(dotenv_path=".env")
+load_dotenv(dotenv_path=".env")
+
+# ДІАГНОСТИКА
+print("=== DIAGNOSTICS ===")
+print("BOT_TOKEN:", "✅" if os.getenv("BOT_TOKEN") else "❌")
+print("STRIPE_SECRET_KEY:", "✅" if os.getenv("STRIPE_SECRET_KEY") else "❌")
+print("OPENAI_API_KEY:", "✅" if os.getenv("OPENAI_API_KEY") else "❌")
+print("==================")
 init_db()
 create_premium_table()
-import stripe
-BOT_TOKEN = os.getenv("BOT_TOKEN")
 
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+import stripe
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -408,6 +417,15 @@ async def list_recurring(message: Message):
 
     await message.answer(text)
 
+@dp.message(Command("check_premium"))
+async def check_premium(message: Message):
+    user_id = message.from_user.id
+    premium_user = get_premium_user(user_id)
+    if premium_user is None:
+        await message.answer("❌ Немає запису в БД")
+    else:
+        await message.answer(f"✅ Запис є: premium={premium_user[0]}, trial_end={premium_user[1]}")
+
 
 @dp.message(F.text.in_(["👑 Premium", "👑 Преміум"]))
 async def premium_button(message: Message):
@@ -415,9 +433,9 @@ async def premium_button(message: Message):
     language = get_language_db(user_id)
     t = translations[language]
 
-    if is_premium(user_id):
-        await message.answer("✅ У вас вже активний Premium!\n\nДякуємо за підтримку 💙")
-        return
+    #if is_premium(user_id):
+        #await message.answer("✅ У вас вже активний Premium!\n\nДякуємо за підтримку 💙")
+        #return
 
     # Створюємо кнопки вибору оплати
     keyboard = InlineKeyboardMarkup(
