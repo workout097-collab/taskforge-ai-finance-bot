@@ -4,4 +4,3 @@ matplotlib
 apscheduler
 reportlab
 httpx
-python-docx

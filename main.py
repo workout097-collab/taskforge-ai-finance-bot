@@ -64,7 +64,7 @@ from database import add_task_db, get_tasks_db, complete_task_db
 load_dotenv(dotenv_path=".env")
 init_db()
 create_premium_table()
-
+import stripe
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 
@@ -218,6 +218,67 @@ async def handle_voice(message: Message):
 
     except Exception as e:
         await processing_msg.edit_text(f"❌ Помилка: {str(e)}")
+
+@dp.message(Command("buy_stripe"))
+async def buy_stripe(message: Message):
+    user_id = message.from_user.id
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            client_reference_id=str(user_id),
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price": "price_1TZV2VQQBexcBmcKLJzc6UYA",  # ← заміни на свій price_id
+                    "quantity": 1,
+                }
+            ],
+            mode="subscription",
+            success_url="https://t.me/taskforge_ai_bot",
+            cancel_url="https://t.me/taskforge_ai_bot"
+        )
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="💳 Купити Premium",
+                        url=checkout_session.url
+                    )
+                ]
+            ]
+        )
+        await message.answer(
+            "💎 Преміум підписка через Stripe",
+            reply_markup=keyboard
+        )
+    except Exception as e:
+        await message.answer(f"Stripe error:\n{e}")
+
+@dp.message(Command("buy_yearly"))
+async def buy_yearly(message: Message):
+    user_id = message.from_user.id
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            client_reference_id=str(user_id),
+            payment_method_types=["card"],
+            line_items=[{
+                "price": "price_1TZbFsQQBexcBmcKZhHfMCQ8",  # Заміни на свій
+                "quantity": 1,
+            }],
+            mode="subscription",
+            success_url="https://t.me/taskforge_ai_bot",
+            cancel_url="https://t.me/taskforge_ai_bot"
+        )
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="💳 Оформити річну підписку", url=checkout_session.url)]
+            ]
+        )
+        await message.answer(
+            "💎 Річний Premium — $40/рік (економія $20)",
+            reply_markup=keyboard
+        )
+    except Exception as e:
+        await message.answer(f"Stripe error:\n{e}")
 
 
 @dp.message(Command("reset_tasks"))
