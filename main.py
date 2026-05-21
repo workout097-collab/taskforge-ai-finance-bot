@@ -60,6 +60,8 @@ from database import (
     get_subscriptions_db
 )
 from database import add_task_db, get_tasks_db, complete_task_db
+from aiogram.types import FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton
+InlineKeyboardMarkup, InlineKeyboardButton:
 
 load_dotenv(dotenv_path=".env")
 init_db()
@@ -406,22 +408,89 @@ async def list_recurring(message: Message):
 
     await message.answer(text)
 
+
 @dp.message(F.text.in_(["👑 Premium", "👑 Преміум"]))
 async def premium_button(message: Message):
     user_id = message.from_user.id
     language = get_language_db(user_id)
     t = translations[language]
 
-    # Перевіряємо, чи вже Premium
-    #if is_premium(user_id):
-        #await message.answer("✅ У вас вже активний Premium!\n\nДякуємо за підтримку 💙")
-        #return
+    if is_premium(user_id):
+        await message.answer("✅ У вас вже активний Premium!\n\nДякуємо за підтримку 💙")
+        return
 
-    # Показуємо опис і пропонуємо купити
-    await message.answer(
-        t["premium_text"] + "\n\n💰 Натисніть /buy_premium для оформлення",
-        parse_mode="Markdown"
+    # Створюємо кнопки вибору оплати
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💎 $5/місяць", callback_data="buy_monthly")],
+            [InlineKeyboardButton(text="💎 $40/рік (економія $20)", callback_data="buy_yearly")],
+        ]
     )
+
+    await message.answer(
+        "💎 *Premium — $5/місяць або $40/рік*\n\n"
+        "Що отримуєш:\n"
+        "✅ Безліміт витрат (free: 50/міс)\n"
+        "✅ Безліміт підписок (free: 3)\n"
+        "✅ Безліміт цілей (free: 1)\n"
+        "✅ AI-аналітика без обмежень\n"
+        "✅ Експорт у PDF та CSV\n"
+        "✅ Пріоритетна підтримка\n\n"
+        "🎁 7 днів безкоштовно\n\n"
+        "💰 Обери варіант оплати:",
+        parse_mode="Markdown",
+        reply_markup=keyboard
+    )
+
+@dp.callback_query(lambda c: c.data == "buy_monthly")
+async def process_monthly(callback_query):
+    user_id = callback_query.from_user.id
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            client_reference_id=str(user_id),
+            payment_method_types=["card"],
+            line_items=[{"price": "price_1TZV2VQQBexcBmcKLJzc6UYA", "quantity": 1}],
+            mode="subscription",
+            success_url="https://t.me/taskforge_ai_bot",
+            cancel_url="https://t.me/taskforge_ai_bot"
+        )
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="💳 Оплатити $5", url=checkout_session.url)]
+            ]
+        )
+        await callback_query.message.edit_text(
+            "💰 Оплата щомісячної підписки — $5/міс\nНатисни кнопку нижче для оплати:",
+            reply_markup=keyboard
+        )
+    except Exception as e:
+        await callback_query.message.edit_text(f"Помилка: {e}")
+    await callback_query.answer()
+
+@dp.callback_query(lambda c: c.data == "buy_yearly")
+async def process_yearly(callback_query):
+    user_id = callback_query.from_user.id
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            client_reference_id=str(user_id),
+            payment_method_types=["card"],
+            line_items=[{"price": "price_1TZbFsQQBexcBmcKZhHfMCQ8", "quantity": 1}],
+            mode="subscription",
+            success_url="https://t.me/taskforge_ai_bot",
+            cancel_url="https://t.me/taskforge_ai_bot"
+        )
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="💳 Оплатити $40", url=checkout_session.url)]
+            ]
+        )
+        await callback_query.message.edit_text(
+            "💰 Оплата річної підписки — $40/рік (економія $20)\nНатисни кнопку нижче для оплати:",
+            reply_markup=keyboard
+        )
+    except Exception as e:
+        await callback_query.message.edit_text(f"Помилка: {e}")
+    await callback_query.answer()
 
 @dp.message(Command("advice"))
 async def advice_command(message: Message):
