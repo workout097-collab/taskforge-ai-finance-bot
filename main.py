@@ -117,69 +117,90 @@ async def successful_payment(message: Message):
         await message.answer("✅ Дякуємо за покупку! Premium активовано на 30 днів.")
 
 
-# ========== ГОЛОС (тільки один обробник) ==========
 @dp.message(F.voice)
 async def handle_voice(message: Message):
     user_id = message.from_user.id
     language = get_language_db(user_id)
-    t = translations[language]
 
     if not is_premium(user_id):
-        await message.answer("🔒 Голосові витрати — Premium фіча. Купи /premium за $5/міс")
+        if language == "en":
+            await message.answer("🔒 Voice expenses are a Premium feature. Buy /premium for $5/mo")
+        else:
+            await message.answer("🔒 Голосові витрати — Premium фіча. Купи /premium за $5/міс")
         return
 
-    processing_msg = await message.answer("🎙️ Обробляю голосове...")
+    processing_msg = await message.answer("🎙️ Processing voice..." if language == "en" else "🎙️ Обробляю голосове...")
 
     try:
         file = await bot.get_file(message.voice.file_id)
         voice_bytes = await bot.download_file(file.file_path)
+
+        # Вибір мови для Whisper
+        whisper_lang = "uk" if language == "ua" else "en"
 
         async with httpx.AsyncClient(timeout=30) as client:
             response = await client.post(
                 "https://api.openai.com/v1/audio/transcriptions",
                 headers={"Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}"},
                 files={"file": ("voice.ogg", voice_bytes, "audio/ogg")},
-                data={"model": "whisper-1", "language": "uk"}
+                data={"model": "whisper-1", "language": whisper_lang}
             )
             result = response.json()
             text = result.get("text", "")
 
         if not text:
-            await processing_msg.edit_text("❌ Не вдалося розпізнати. Спробуй ще раз.")
+            if language == "en":
+                await processing_msg.edit_text("❌ Could not recognize. Try again.")
+            else:
+                await processing_msg.edit_text("❌ Не вдалося розпізнати. Спробуй ще раз.")
             return
 
         # Перевірка на ціль
-        if "хочу" in text.lower() or "ціль" in text.lower() or "накопичити" in text.lower():
+        if language == "en":
+            target_keywords = ["want", "goal", "save", "buy"]
+            task_keywords = ["task", "todo", "do"]
+        else:
+            target_keywords = ["хочу", "ціль", "накопичити"]
+            task_keywords = ["задача", "зробити", "треба"]
+
+        if any(kw in text.lower() for kw in target_keywords):
             parts = text.lower().split()
             goal_amount = None
             goal_name = []
             for word in parts:
                 if word.isdigit():
                     goal_amount = int(word)
-                elif word not in ["хочу", "ціль", "накопичити"]:
+                elif word not in target_keywords:
                     goal_name.append(word)
             if goal_amount:
                 goal_name_str = " ".join(goal_name)
                 set_goal_db(user_id, goal_name_str, goal_amount)
-                await processing_msg.edit_text(
-                    f"🎯 Ціль додано: {goal_name_str} — {goal_amount} {get_currency_db(user_id)}")
+                await processing_msg.edit_text(f"🎯 Goal added: {goal_name_str} — {goal_amount} {get_currency_db(user_id)}")
                 return
 
         # Перевірка на задачу
-        if "задача" in text.lower() or "зробити" in text.lower() or "треба" in text.lower():
-            task_text = text.replace("задача", "").replace("зробити", "").replace("треба", "").strip()
+        if any(kw in text.lower() for kw in task_keywords):
+            task_text = text
+            for kw in task_keywords:
+                task_text = task_text.replace(kw, "")
+            task_text = task_text.strip()
             if task_text:
                 add_task_db(user_id, task_text)
-                await processing_msg.edit_text(f"✅ Задачу додано: {task_text}")
+                await processing_msg.edit_text(f"✅ Task added: {task_text}")
                 return
 
-        # Додавання витрати (основний сценарій)
+        # Додавання витрати
         words = text.lower().split()
         amount = None
         category = "other"
 
-        # Словник слів-чисел (українською)
+        # Числа словами (англ + укр)
         number_words = {
+            "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+            "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+            "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
+            "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
+            "hundred": 100, "thousand": 1000,
             "один": 1, "два": 2, "три": 3, "чотири": 4, "п'ять": 5,
             "шість": 6, "сім": 7, "вісім": 8, "дев'ять": 9, "десять": 10,
             "двадцять": 20, "тридцять": 30, "сорок": 40, "п'ятдесят": 50,
@@ -188,8 +209,6 @@ async def handle_voice(message: Message):
             "тисяча": 1000
         }
 
-        # Шукаємо цифру або слово-число
-        amount = None
         for word in words:
             if word.isdigit():
                 amount = int(word)
@@ -199,13 +218,17 @@ async def handle_voice(message: Message):
                 break
 
         if not amount:
-            number_words = {"п'ятдесят": 50, "сто": 100, "двісті": 200, "триста": 300, "п'ятсот": 500}
             for word, val in number_words.items():
                 if word in text.lower():
                     amount = val
                     break
 
+        # Категорії (англ + укр)
         category_map = {
+            "coffee": "food", "food": "food", "lunch": "food", "dinner": "food",
+            "taxi": "transport", "transport": "transport", "gas": "transport", "uber": "transport",
+            "movie": "entertainment", "cinema": "entertainment", "film": "entertainment",
+            "medicine": "health", "doctor": "health", "gym": "health",
             "кава": "food", "їжа": "food", "обід": "food",
             "таксі": "transport", "транспорт": "transport", "бензин": "transport",
             "кіно": "entertainment", "фільм": "entertainment",
@@ -217,7 +240,6 @@ async def handle_voice(message: Message):
                 category = cat
                 break
 
-        language = get_language_db(user_id)  # додай цей рядок, якщо ще немає
         if amount:
             add_expense_db(user_id, category, amount)
             currency = get_currency_db(user_id)
@@ -227,14 +249,12 @@ async def handle_voice(message: Message):
                 await processing_msg.edit_text(f"✅ Додано: {category} — {amount} {currency}\n🎤 Розпізнано: \"{text}\"")
         else:
             if language == "en":
-                await processing_msg.edit_text(
-                    f"❌ Could not find amount. Say, e.g., 'coffee 50'\nRecognized: \"{text}\"")
+                await processing_msg.edit_text(f"❌ Could not find amount. Say, e.g., 'coffee 5'\nRecognized: \"{text}\"")
             else:
-                await processing_msg.edit_text(
-                    f"❌ Не знайшов суму. Скажи, наприклад: 'кава 50'\nРозпізнано: \"{text}\"")
+                await processing_msg.edit_text(f"❌ Не знайшов суму. Скажи, наприклад: 'кава 50'\nРозпізнано: \"{text}\"")
 
     except Exception as e:
-        await processing_msg.edit_text(f"❌ Помилка: {str(e)}")
+        await processing_msg.edit_text(f"❌ Error: {str(e)}")
 
 @dp.message(Command("buy_stripe"))
 async def buy_stripe(message: Message):
