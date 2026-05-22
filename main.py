@@ -64,14 +64,7 @@ from aiogram.types import FSInputFile, InlineKeyboardMarkup, InlineKeyboardButto
 
 
 load_dotenv(dotenv_path=".env")
-load_dotenv(dotenv_path=".env")
 
-# ДІАГНОСТИКА
-print("=== DIAGNOSTICS ===")
-print("BOT_TOKEN:", "✅" if os.getenv("BOT_TOKEN") else "❌")
-print("STRIPE_SECRET_KEY:", "✅" if os.getenv("STRIPE_SECRET_KEY") else "❌")
-print("OPENAI_API_KEY:", "✅" if os.getenv("OPENAI_API_KEY") else "❌")
-print("==================")
 init_db()
 create_premium_table()
 
@@ -117,7 +110,11 @@ async def successful_payment(message: Message):
     user_id = message.from_user.id
     trial_end = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
     add_premium_user(user_id, 1, trial_end)
-    await message.answer("✅ Дякуємо за покупку! Premium активовано на 30 днів.")
+    language = get_language_db(user_id)
+    if language == "en":
+        await message.answer("✅ Thank you for your purchase! Premium activated for 30 days.")
+    else:
+        await message.answer("✅ Дякуємо за покупку! Premium активовано на 30 днів.")
 
 
 # ========== ГОЛОС (тільки один обробник) ==========
@@ -220,12 +217,21 @@ async def handle_voice(message: Message):
                 category = cat
                 break
 
+        language = get_language_db(user_id)  # додай цей рядок, якщо ще немає
         if amount:
             add_expense_db(user_id, category, amount)
             currency = get_currency_db(user_id)
-            await processing_msg.edit_text(f"✅ Додано: {category} — {amount} {currency}\n🎤 Розпізнано: \"{text}\"")
+            if language == "en":
+                await processing_msg.edit_text(f"✅ Added: {category} — {amount} {currency}\n🎤 Recognized: \"{text}\"")
+            else:
+                await processing_msg.edit_text(f"✅ Додано: {category} — {amount} {currency}\n🎤 Розпізнано: \"{text}\"")
         else:
-            await processing_msg.edit_text(f"❌ Не знайшов суму. Скажи, наприклад: 'кава 50'\nРозпізнано: \"{text}\"")
+            if language == "en":
+                await processing_msg.edit_text(
+                    f"❌ Could not find amount. Say, e.g., 'coffee 50'\nRecognized: \"{text}\"")
+            else:
+                await processing_msg.edit_text(
+                    f"❌ Не знайшов суму. Скажи, наприклад: 'кава 50'\nРозпізнано: \"{text}\"")
 
     except Exception as e:
         await processing_msg.edit_text(f"❌ Помилка: {str(e)}")
@@ -426,43 +432,52 @@ async def check_premium(message: Message):
     else:
         await message.answer(f"✅ Запис є: premium={premium_user[0]}, trial_end={premium_user[1]}")
 
-
 @dp.message(F.text.in_(["👑 Premium", "👑 Преміум"]))
 async def premium_button(message: Message):
     user_id = message.from_user.id
     language = get_language_db(user_id)
-    t = translations[language]
 
-    #if is_premium(user_id):
-        #await message.answer("✅ У вас вже активний Premium!\n\nДякуємо за підтримку 💙")
-        #return
-
-    # Створюємо кнопки вибору оплати
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="💎 $5/місяць", callback_data="buy_monthly")],
-            [InlineKeyboardButton(text="💎 $40/рік (економія $20)", callback_data="buy_yearly")],
+            [InlineKeyboardButton(text="💎 $5/month", callback_data="buy_monthly")],
+            [InlineKeyboardButton(text="💎 $40/year (save $20)", callback_data="buy_yearly")],
         ]
     )
 
-    await message.answer(
-        "💎 *Premium — $5/місяць або $40/рік*\n\n"
-        "Що отримуєш:\n"
-        "✅ Безліміт витрат (free: 50/міс)\n"
-        "✅ Безліміт підписок (free: 3)\n"
-        "✅ Безліміт цілей (free: 1)\n"
-        "✅ AI-аналітика без обмежень\n"
-        "✅ Експорт у PDF та CSV\n"
-        "✅ Пріоритетна підтримка\n\n"
-        "🎁 7 днів безкоштовно\n\n"
-        "💰 Обери варіант оплати:",
-        parse_mode="Markdown",
-        reply_markup=keyboard
-    )
+    if language == "en":
+        text = (
+            "💎 *Premium — $5/month or $40/year*\n\n"
+            "What you get:\n"
+            "✅ Unlimited expenses (free: 50/month)\n"
+            "✅ Unlimited subscriptions (free: 3)\n"
+            "✅ Unlimited goals (free: 1)\n"
+            "✅ Unlimited AI insights\n"
+            "✅ PDF & CSV export\n"
+            "✅ Priority support\n\n"
+            "🎁 7 days free trial\n\n"
+            "💰 Choose payment option:"
+        )
+    else:
+        text = (
+            "💎 *Premium — $5/місяць або $40/рік*\n\n"
+            "Що отримуєш:\n"
+            "✅ Безліміт витрат (free: 50/міс)\n"
+            "✅ Безліміт підписок (free: 3)\n"
+            "✅ Безліміт цілей (free: 1)\n"
+            "✅ AI-аналітика без обмежень\n"
+            "✅ Експорт у PDF та CSV\n"
+            "✅ Пріоритетна підтримка\n\n"
+            "🎁 7 днів безкоштовно\n\n"
+            "💰 Обери варіант оплати:"
+        )
+
+    await message.answer(text, parse_mode="Markdown", reply_markup=keyboard)
+
 
 @dp.callback_query(lambda c: c.data == "buy_monthly")
 async def process_monthly(callback_query):
     user_id = callback_query.from_user.id
+    language = get_language_db(user_id)
     try:
         checkout_session = stripe.checkout.Session.create(
             client_reference_id=str(user_id),
@@ -472,22 +487,28 @@ async def process_monthly(callback_query):
             success_url="https://t.me/taskforge_ai_bot",
             cancel_url="https://t.me/taskforge_ai_bot"
         )
+        button_text = "💳 Pay $5" if language == "en" else "💳 Оплатити $5"
         keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="💳 Оплатити $5", url=checkout_session.url)]
-            ]
+            inline_keyboard=[[InlineKeyboardButton(text=button_text, url=checkout_session.url)]]
         )
-        await callback_query.message.edit_text(
-            "💰 Оплата щомісячної підписки — $5/міс\nНатисни кнопку нижче для оплати:",
-            reply_markup=keyboard
-        )
+        if language == "en":
+            await callback_query.message.edit_text(
+                "💰 Monthly subscription payment — $5/month\nClick the button below to pay:",
+                reply_markup=keyboard
+            )
+        else:
+            await callback_query.message.edit_text(
+                "💰 Оплата щомісячної підписки — $5/міс\nНатисни кнопку нижче для оплати:",
+                reply_markup=keyboard
+            )
     except Exception as e:
-        await callback_query.message.edit_text(f"Помилка: {e}")
+        await callback_query.message.edit_text(f"Error: {e}")
     await callback_query.answer()
 
 @dp.callback_query(lambda c: c.data == "buy_yearly")
 async def process_yearly(callback_query):
     user_id = callback_query.from_user.id
+    language = get_language_db(user_id)
     try:
         checkout_session = stripe.checkout.Session.create(
             client_reference_id=str(user_id),
@@ -497,17 +518,22 @@ async def process_yearly(callback_query):
             success_url="https://t.me/taskforge_ai_bot",
             cancel_url="https://t.me/taskforge_ai_bot"
         )
+        button_text = "💳 Pay $40" if language == "en" else "💳 Оплатити $40"
         keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="💳 Оплатити $40", url=checkout_session.url)]
-            ]
+            inline_keyboard=[[InlineKeyboardButton(text=button_text, url=checkout_session.url)]]
         )
-        await callback_query.message.edit_text(
-            "💰 Оплата річної підписки — $40/рік (економія $20)\nНатисни кнопку нижче для оплати:",
-            reply_markup=keyboard
-        )
+        if language == "en":
+            await callback_query.message.edit_text(
+                "💰 Yearly subscription payment — $40/year (save $20)\nClick the button below to pay:",
+                reply_markup=keyboard
+            )
+        else:
+            await callback_query.message.edit_text(
+                "💰 Оплата річної підписки — $40/рік (економія $20)\nНатисни кнопку нижче для оплати:",
+                reply_markup=keyboard
+            )
     except Exception as e:
-        await callback_query.message.edit_text(f"Помилка: {e}")
+        await callback_query.message.edit_text(f"Error: {e}")
     await callback_query.answer()
 
 @dp.message(Command("advice"))
@@ -1286,7 +1312,6 @@ async def warnings_handler(message: Message):
 
     await message.answer(text)
 
-
 @dp.message(Command("stats"))
 async def show_stats(message: Message):
     user_id = message.from_user.id
@@ -1299,29 +1324,44 @@ async def show_stats(message: Message):
         await message.answer(t["no_expenses"])
         return
 
-    # Мапа для нормалізації категорій
-    category_normalize = {
-        "food": "Їжа",
-        "transport": "Транспорт",
-        "entertainment": "Розваги",
-        "shopping": "Покупки",
-        "health": "Здоров'я",
-        "work": "Робота",
-        "other": "Інше",
-        "таксі": "Транспорт",
-        "бензин": "Транспорт",
-        "кава": "Їжа",
-        "їжа": "Їжа",
-        "кіно": "Розваги",
-        "ліки": "Здоров'я",
-    }
+    # Мапа для нормалізації категорій (українська / англійська)
+    if language == "en":
+        category_normalize = {
+            "food": "Food",
+            "transport": "Transport",
+            "entertainment": "Entertainment",
+            "shopping": "Shopping",
+            "health": "Health",
+            "work": "Work",
+            "other": "Other",
+            "таксі": "Transport",
+            "бензин": "Transport",
+            "кава": "Food",
+            "їжа": "Food",
+            "кіно": "Entertainment",
+            "ліки": "Health",
+        }
+    else:
+        category_normalize = {
+            "food": "Їжа",
+            "transport": "Транспорт",
+            "entertainment": "Розваги",
+            "shopping": "Покупки",
+            "health": "Здоров'я",
+            "work": "Робота",
+            "other": "Інше",
+            "таксі": "Транспорт",
+            "бензин": "Транспорт",
+            "кава": "Їжа",
+            "їжа": "Їжа",
+            "кіно": "Розваги",
+            "ліки": "Здоров'я",
+        }
 
     stats = {}
     for expense in expenses:
         category = expense[2].lower()
         amount = expense[3]
-
-        # Нормалізуємо категорію
         normalized = category_normalize.get(category, category.capitalize())
         stats[normalized] = stats.get(normalized, 0) + amount
 
@@ -1338,6 +1378,7 @@ async def show_stats(message: Message):
     text += f"\n{t['total']}: {total} {currency}"
 
     await message.answer(text)
+
 
 @dp.message(Command("month"))
 async def month_stats(message: Message):
