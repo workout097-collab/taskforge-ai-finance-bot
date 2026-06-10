@@ -1420,14 +1420,14 @@ async def start_handler(message: Message):
             "👋 Привіт! Я допоможу зрозуміти куди йдуть твої гроші.\n\n"
             "Спробуй прямо зараз 👇\n"
             "Натисни 🎤 і скажи: «Кава 50» або «Таксі 120»\n\n"
-            "Я сам розпізнаю категорію і запишу ✨"
+            "Я сам розпізнаю категорію і запишу ✨\n\n📚 Натисни /help щоб побачити всі команди"
         )
     else:
         welcome = (
             "👋 Hey! I'll help you figure out where your money goes.\n\n"
             "Try it right now 👇\n"
             "Tap 🎤 and say: \"Coffee 5\" or \"Taxi 12\"\n\n"
-            "I'll recognize the category automatically ✨"
+            "I'll recognize the category automatically ✨\n\n📚 Type /help to see all commands"
         )
 
     await message.answer(
