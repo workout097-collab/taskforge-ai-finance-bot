@@ -124,9 +124,9 @@ async def handle_voice(message: Message):
 
     if not is_premium(user_id):
         if language == "en":
-            await message.answer("🔒 Voice expenses are a Premium feature. Buy /premium for $5/mo")
+            await message.answer("🔒 Voice expenses are a Premium feature. Buy /premium for $3/mo")
         else:
-            await message.answer("🔒 Голосові витрати — Premium фіча. Купи /premium за $5/міс")
+            await message.answer("🔒 Голосові витрати — Premium фіча. Купи /premium за $3/міс")
         return
 
     processing_msg = await message.answer("🎙️ Processing voice..." if language == "en" else "🎙️ Обробляю голосове...")
@@ -267,7 +267,7 @@ async def buy_yearly(message: Message):
             ]
         )
         await message.answer(
-            "💎 Річний Premium — $40/рік (економія $20)",
+            "💎 Річний Premium — $29/рік (економія $40)",
             reply_markup=keyboard
         )
     except Exception as e:
@@ -415,14 +415,14 @@ async def premium_button(message: Message):
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="💎 $5/month", callback_data="buy_monthly")],
-            [InlineKeyboardButton(text="💎 $40/year (save $20)", callback_data="buy_yearly")],
+            [InlineKeyboardButton(text="💎 $3/month", callback_data="buy_monthly")],
+            [InlineKeyboardButton(text="💎 $29/year (save $40)", callback_data="buy_yearly")],
         ]
     )
 
     if language == "en":
         text = (
-            "💎 *Premium — $5/month or $40/year*\n\n"
+            "💎 *Premium — $3/month or $29/year*\n\n"
             "What you get:\n"
             "✅ Unlimited expenses (free: 50/month)\n"
             "✅ Unlimited subscriptions (free: 3)\n"
@@ -435,7 +435,7 @@ async def premium_button(message: Message):
         )
     else:
         text = (
-            "💎 *Premium — $5/місяць або $40/рік*\n\n"
+            "💎 *Premium — $3/місяць або $29/рік*\n\n"
             "Що отримуєш:\n"
             "✅ Безліміт витрат (free: 50/міс)\n"
             "✅ Безліміт підписок (free: 3)\n"
@@ -463,7 +463,7 @@ async def process_monthly(callback_query):
             success_url="https://t.me/taskforge_ai_bot",
             cancel_url="https://t.me/taskforge_ai_bot"
         )
-        button_text = "💳 Pay $5" if language == "en" else "💳 Оплатити $5"
+        button_text = "💳 Pay $3" if language == "en" else "💳 Оплатити $3"
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text=button_text, url=checkout_session.url)]]
         )
@@ -474,7 +474,7 @@ async def process_monthly(callback_query):
             )
         else:
             await callback_query.message.edit_text(
-                "💰 Оплата щомісячної підписки — $5/міс\nНатисни кнопку нижче для оплати:",
+                "💰 Оплата щомісячної підписки — $3/міс\nНатисни кнопку нижче для оплати:",
                 reply_markup=keyboard
             )
     except Exception as e:
@@ -494,18 +494,18 @@ async def process_yearly(callback_query):
             success_url="https://t.me/taskforge_ai_bot",
             cancel_url="https://t.me/taskforge_ai_bot"
         )
-        button_text = "💳 Pay $40" if language == "en" else "💳 Оплатити $40"
+        button_text = "💳 Pay $29" if language == "en" else "💳 Оплатити $29"
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text=button_text, url=checkout_session.url)]]
         )
         if language == "en":
             await callback_query.message.edit_text(
-                "💰 Yearly subscription payment — $40/year (save $20)\nClick the button below to pay:",
+                "💰 Yearly subscription payment — $29/year (save $40)\nClick the button below to pay:",
                 reply_markup=keyboard
             )
         else:
             await callback_query.message.edit_text(
-                "💰 Оплата річної підписки — $40/рік (економія $20)\nНатисни кнопку нижче для оплати:",
+                "💰 Оплата річної підписки — $29/рік (економія $40)\nНатисни кнопку нижче для оплати:",
                 reply_markup=keyboard
             )
     except Exception as e:
@@ -591,9 +591,6 @@ async def ukrainian_lang(message: Message):
         "🇺🇦 Українська увімкнена",
         reply_markup=get_main_keyboard("ua")
     )
-
-
-
 
 @dp.message(Command("admin"))
 async def admin_stats(message: Message):
@@ -861,7 +858,7 @@ async def subscribe_command(message: Message):
     if not is_premium(user_id):
         subscriptions = get_subscriptions_db(user_id)
         if len(subscriptions) >= 3:
-            await message.answer("❌ Ліміт 3 підписки в безкоштовній версії. Купи Premium за $5/міс.")
+            await message.answer("❌ Ліміт 3 підписки в безкоштовній версії. Купи Premium за $3/міс.")
             return
 
     language = get_language_db(user_id)
@@ -1100,6 +1097,7 @@ async def report_handler(message: Message):
     pdf.setFont("Helvetica", 12)
     pdf.drawString(50, 730, f"User ID: {user_id}")
     pdf.drawString(50, 710, f"Date: {current_date}")
+
 
     # LINE
     pdf.line(50, 690, 550, 690)
@@ -1417,19 +1415,24 @@ async def start_handler(message: Message):
         trial_end = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
         add_premium_user(user_id, 1, trial_end)
 
+    if language == "ua":
+        welcome = (
+            "👋 Привіт! Я допоможу зрозуміти куди йдуть твої гроші.\n\n"
+            "Спробуй прямо зараз 👇\n"
+            "Натисни 🎤 і скажи: «Кава 50» або «Таксі 120»\n\n"
+            "Я сам розпізнаю категорію і запишу ✨"
+        )
+    else:
+        welcome = (
+            "👋 Hey! I'll help you figure out where your money goes.\n\n"
+            "Try it right now 👇\n"
+            "Tap 🎤 and say: \"Coffee 5\" or \"Taxi 12\"\n\n"
+            "I'll recognize the category automatically ✨"
+        )
 
     await message.answer(
-        "🚀 Welcome to TaskForge AI\n\n"
-        "Track:\n"
-        "• expenses\n"
-        "• tasks\n"
-        "• goals\n"
-        "• subscriptions\n"
-        "• budgets\n\n"
-        "👇 Use the menu below\n"
-        "or type /help",
+        welcome,
         reply_markup=get_main_keyboard(language)
-
     )
 
 @dp.message(Command("add"))
